@@ -75,14 +75,26 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
   const uploadPhoto = async (blob: Blob) => {
     setIsUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Você precisa estar logado para postar fotos.");
-        setIsUploading(false);
-        return;
+      let userId: string | null = null;
+      
+      if (shareToken) {
+        // Se houver shareToken, pegamos o owner_id do link
+        const { data: linkData, error: linkError } = await supabase
+          .from('shared_links')
+          .select('owner_id')
+          .eq('token', shareToken)
+          .single();
+        
+        if (linkError || !linkData) throw new Error("Link compartilhado inválido.");
+        userId = linkData.owner_id;
+      } else {
+        // Caso contrário, usamos o usuário logado
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Você precisa estar logado para capturar fotos.");
+        userId = user.id;
       }
 
-      const fileName = `${user.id}/${Date.now()}.jpg`;
+      const fileName = `${shareToken ? 'public/' + shareToken : userId}/${Date.now()}.jpg`;
       const { data, error: uploadError } = await supabase.storage
         .from('photos')
         .upload(fileName, blob);
@@ -96,9 +108,11 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       const { error: dbError } = await supabase
         .from('photos')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           image_url: publicUrl,
-          caption: ""
+          caption: shareToken ? "Captura Pública" : "Captura Direta",
+          share_token: shareToken || null,
+          guest_name: shareToken ? "Convidado (Câmera)" : null
         });
 
       if (dbError) throw dbError;
@@ -107,7 +121,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       onCapture(publicUrl);
       onClose();
     } catch (err: any) {
-      toast.error("Erro no upload: " + err.message);
+      toast.error("Erro ao salvar foto: " + err.message);
     } finally {
       setIsUploading(false);
     }
