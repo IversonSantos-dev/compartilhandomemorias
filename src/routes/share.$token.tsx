@@ -133,8 +133,9 @@ function PublicUpload() {
         .insert({
           user_id: ownerData.owner_id,
           image_url: publicUrl,
-          caption: "Public Upload",
-          share_token: token
+          caption: captionInput || "Public Upload",
+          share_token: token,
+          guest_name: guestNameInput || "Convidado"
         });
 
       if (dbError) throw dbError;
