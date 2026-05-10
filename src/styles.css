@@ -62,9 +62,10 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --radius: 1.5rem;
+  --background: #F9F9F9;
   --foreground: oklch(0.129 0.042 264.695);
+
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
@@ -140,5 +141,7 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: 'Sora', sans-serif;
   }
+
 }
