@@ -251,6 +251,7 @@ function PublicUpload() {
               disabled={isUploading}
             />
           </label>
+        </div>
 
           <AnimatePresence>
             {isUploading && (
