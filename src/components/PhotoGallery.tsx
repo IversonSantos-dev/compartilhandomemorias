@@ -113,12 +113,23 @@ export const PhotoGallery: React.FC = () => {
             }}
             className={`group relative break-inside-avoid overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
           >
-            <img
-              src={photo.image_url}
-              alt={photo.caption || "Shared moment"}
-              className="w-full object-cover"
-              loading="lazy"
-            />
+            {photo.image_url.toLowerCase().endsWith('.mp4') ? (
+              <video
+                src={photo.image_url}
+                className="w-full"
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+            ) : (
+              <img
+                src={photo.image_url}
+                alt={photo.caption || "Shared moment"}
+                className="w-full object-cover"
+                loading="lazy"
+              />
+            )}
             
             {/* Owner Actions - Glassmorphism */}
             {currentUserId === photo.user_id && (

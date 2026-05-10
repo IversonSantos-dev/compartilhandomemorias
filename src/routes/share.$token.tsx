@@ -357,12 +357,23 @@ function PublicUpload() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="group relative aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
                   >
-                    <img
-                      src={photo.image_url}
-                      alt="Shared moment"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      loading="lazy"
-                    />
+                    {photo.image_url.toLowerCase().endsWith('.mp4') ? (
+                      <video
+                        src={photo.image_url}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={photo.image_url}
+                        alt="Shared moment"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                    )}
                     <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                       {photo.caption && (
                         <p className="mb-1 text-xs font-bold text-white line-clamp-2">{photo.caption}</p>

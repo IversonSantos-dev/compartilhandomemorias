@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, X, Upload, Check, Loader2, RefreshCw } from 'lucide-react';
+import { Camera, X, Upload, Check, Loader2, RefreshCw, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -14,9 +14,14 @@ interface CameraCaptureProps {
 export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen, onClose, shareToken }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const startCamera = useCallback(async () => {
     // Parar stream anterior se existir
@@ -27,7 +32,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: facingMode },
-        audio: false 
+        audio: true 
       });
       setStream(mediaStream);
       if (videoRef.current) {
@@ -176,19 +181,48 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
               )}
             </div>
 
-            <div className="flex items-center justify-center p-8 bg-white">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  capturePhoto();
-                }}
-                disabled={isUploading}
-                className="group relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-gray-100 p-1 transition-all hover:border-black/5 active:scale-95 disabled:opacity-50"
-              >
-                <div className="h-full w-full rounded-full bg-black group-hover:bg-gray-800 transition-all flex items-center justify-center shadow-xl">
-                  <Camera className="text-white" size={32} />
+            <div className="flex flex-col items-center justify-center p-8 bg-white gap-4">
+              {isRecording && (
+                <div className="flex items-center gap-2 text-red-500 font-bold animate-pulse">
+                  <Circle size={12} fill="currentColor" />
+                  <span>GRAVANDO...</span>
                 </div>
+              )}
+              
+              <button
+                onPointerDown={handlePointerDown}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+                disabled={isUploading}
+                className="group relative flex h-24 w-24 items-center justify-center rounded-full border-4 border-gray-100 p-1 transition-all hover:border-black/5 active:scale-90 disabled:opacity-50"
+              >
+                <div className={`h-full w-full rounded-full ${isRecording ? 'bg-red-500 scale-90' : 'bg-black'} group-hover:bg-gray-800 transition-all flex items-center justify-center shadow-xl`}>
+                  {isRecording ? (
+                    <div className="h-8 w-8 rounded-sm bg-white" />
+                  ) : (
+                    <Camera className="text-white" size={36} />
+                  )}
+                </div>
+                
+                {/* Progress Ring for recording hint */}
+                {!isRecording && !isUploading && (
+                  <svg className="absolute inset-0 h-full w-full -rotate-90">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="44"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-gray-100"
+                    />
+                  </svg>
+                )}
               </button>
+              
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                {isRecording ? "Solte para parar" : "Toque para foto • Segure para vídeo"}
+              </p>
             </div>
           </motion.div>
         </motion.div>
