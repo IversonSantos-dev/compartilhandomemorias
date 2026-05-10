@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon, Clock, Filter, Calendar, User as UserIcon, Type } from 'lucide-react';
+import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon, Clock, Filter, Calendar, User as UserIcon, Type, Download, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast, Toaster } from 'sonner';
 import confetti from 'canvas-confetti';
@@ -35,6 +35,9 @@ function PublicUpload() {
   const [guestNameInput, setGuestNameInput] = useState('');
   const [captionInput, setCaptionInput] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<Photo | null>(null);
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -212,6 +215,68 @@ function PublicUpload() {
     }
   };
 
+  const downloadImage = async (imageUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'photo';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error downloading photo:", err);
+      toast.error("Erro ao baixar foto.");
+    }
+  };
+
+  const handleDownloadSelected = async () => {
+    if (selectedPhotos.length === 0) return;
+    setIsDownloading(true);
+    toast.info(`Iniciando download de ${selectedPhotos.length} fotos...`);
+
+    try {
+      // Loop with delay to handle multiple downloads
+      for (let i = 0; i < selectedPhotos.length; i++) {
+        const photoId = selectedPhotos[i];
+        const photo = photos.find(p => p.id === photoId);
+        if (photo) {
+          const extension = photo.image_url.split('.').pop()?.split('?')[0] || 'jpg';
+          const fileName = `foto-${photoId}.${extension}`;
+          await downloadImage(photo.image_url, fileName);
+          // Wait 500ms between each download to ensure browser allows them
+          if (i < selectedPhotos.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+      }
+      toast.success("Downloads concluídos!");
+      setIsSelectionMode(false);
+      setSelectedPhotos([]);
+    } catch (err) {
+      console.error("Multiple download error:", err);
+      toast.error("Erro no download múltiplo.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const toggleSelectPhoto = (id: string) => {
+    setSelectedPhotos(prev => 
+      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectionMode = () => {
+    if (isSelectionMode) {
+      setSelectedPhotos([]);
+    }
+    setIsSelectionMode(!isSelectionMode);
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F9F9F9]">
@@ -372,9 +437,33 @@ function PublicUpload() {
         {/* Shared Gallery Section */}
         <section className="mt-20">
           <div className="mb-8 flex flex-col gap-6">
-            <div className="flex items-center justify-center gap-3">
-              <ImageIcon className="text-black" size={24} />
-              <h3 className="text-xl font-black tracking-tight">Memórias dos Convidados</h3>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <ImageIcon className="text-black" size={24} />
+                <h3 className="text-xl font-black tracking-tight">Memórias dos Convidados</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {isSelectionMode && (
+                  <button
+                    onClick={handleDownloadSelected}
+                    disabled={selectedPhotos.length === 0 || isDownloading}
+                    className="flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                    Salvar Selecionadas ({selectedPhotos.length})
+                  </button>
+                )}
+                <button
+                  onClick={toggleSelectionMode}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
+                    isSelectionMode 
+                      ? "bg-black text-white" 
+                      : "bg-white text-black ring-1 ring-black/5 hover:bg-gray-50"
+                  }`}
+                >
+                  {isSelectionMode ? "Cancelar" : "Selecionar Vários"}
+                </button>
+              </div>
             </div>
 
             {/* Filtros e Contadores */}
@@ -436,9 +525,18 @@ function PublicUpload() {
                     key={photo.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    onClick={() => setSelectedMedia(photo)}
-                    className="group relative aspect-square cursor-pointer overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
+                    onClick={() => isSelectionMode ? toggleSelectPhoto(photo.id) : setSelectedMedia(photo)}
+                    className={`group relative aspect-square cursor-pointer overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 transition-all ${selectedPhotos.includes(photo.id) ? 'ring-4 ring-blue-500 shadow-blue-500/20' : ''}`}
                   >
+                    {isSelectionMode && (
+                      <div className="absolute top-4 left-4 z-30">
+                        {selectedPhotos.includes(photo.id) ? (
+                          <CheckCircle2 size={24} className="text-blue-500 fill-white" />
+                        ) : (
+                          <Circle size={24} className="text-white/50 fill-black/20" />
+                        )}
+                      </div>
+                    )}
                     {photo.image_url.toLowerCase().endsWith('.mp4') ? (
                       <video
                         src={photo.image_url}
@@ -480,21 +578,37 @@ function PublicUpload() {
                       </div>
                     </div>
 
-                    {/* Reactions Overlay */}
-                    <div className="absolute top-2 left-2 flex gap-1.5 opacity-100 sm:opacity-0 transition-opacity group-hover:opacity-100 z-20">
-                      {['❤️', '😊', '🎉'].map((emoji) => (
+                    {/* Actions Overlay */}
+                    {!isSelectionMode && (
+                      <div className="absolute top-2 left-2 flex flex-col gap-2 opacity-100 sm:opacity-0 transition-opacity group-hover:opacity-100 z-20">
+                        {/* Reactions Row */}
+                        <div className="flex gap-1.5">
+                          {['❤️', '😊', '🎉'].map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReaction(photo.id, emoji);
+                              }}
+                              className="rounded-full bg-white/40 p-2 text-sm backdrop-blur-md ring-1 ring-white/50 transition-all hover:scale-125 hover:bg-white active:scale-90 shadow-lg"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Download button row */}
                         <button
-                          key={emoji}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleReaction(photo.id, emoji);
+                            const extension = photo.image_url.split('.').pop()?.split('?')[0] || 'jpg';
+                            downloadImage(photo.image_url, `foto-${photo.id}.${extension}`);
                           }}
-                          className="rounded-full bg-white/40 p-2 text-sm backdrop-blur-md ring-1 ring-white/50 transition-all hover:scale-125 hover:bg-white active:scale-90 shadow-lg"
+                          className="flex items-center justify-center rounded-full bg-white/80 p-2 text-black backdrop-blur-md ring-1 ring-black/5 transition-all hover:scale-105 active:scale-95 shadow-md w-fit"
                         >
-                          {emoji}
+                          <Download size={16} />
                         </button>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                     <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 backdrop-blur-md group-hover:hidden">
                       <Clock size={10} className="text-white/80" />
                       <span className="text-[9px] font-bold text-white uppercase tracking-tighter">
@@ -593,9 +707,21 @@ function PublicUpload() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-                    <Clock size={12} />
-                    <span>{new Date(selectedMedia.created_at).toLocaleString('pt-BR')}</span>
+                  <div className="flex flex-col items-end gap-3">
+                    <button
+                      onClick={() => {
+                        const extension = selectedMedia.image_url.split('.').pop()?.split('?')[0] || 'jpg';
+                        downloadImage(selectedMedia.image_url, `foto-${selectedMedia.id}.${extension}`);
+                      }}
+                      className="flex items-center gap-2 rounded-full bg-white px-6 py-2 text-sm font-black text-black transition-transform hover:scale-105 active:scale-95"
+                    >
+                      <Download size={18} />
+                      SALVAR FOTO
+                    </button>
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                      <Clock size={12} />
+                      <span>{new Date(selectedMedia.created_at).toLocaleString('pt-BR')}</span>
+                    </div>
                   </div>
                 </div>
               </div>
