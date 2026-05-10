@@ -27,7 +27,7 @@ function PublicUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [linkData, setLinkData] = useState<any>(null);
-  const [ownerInfo, setOwnerInfo] = useState<any>(null);
+  const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [filter, setFilter] = useState<'all' | 'today' | 'week'>('all');
@@ -204,17 +204,47 @@ function PublicUpload() {
         </Link>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 text-center">
+      <main className="mx-auto max-w-7xl px-6 pb-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          className="relative mb-12 overflow-hidden rounded-[3rem] bg-white ring-1 ring-black/5 shadow-xl"
         >
-          <h1 className="text-4xl font-black tracking-tighter text-black">
-            Contribuir com a Galeria
-          </h1>
-          <p className="mt-4 text-lg font-medium text-gray-500">
-            Envie suas fotos para a pasta compartilhada.
-          </p>
+          {/* Banner */}
+          <div className="h-48 w-full bg-gray-100">
+            {ownerProfile?.banner_url ? (
+              <img src={ownerProfile.banner_url} alt="Banner" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100" />
+            )}
+          </div>
+
+          <div className="relative -mt-12 flex flex-col items-center px-6 pb-10 text-center">
+            {/* Avatar */}
+            <div className="mb-6 h-32 w-32 overflow-hidden rounded-[2.5rem] bg-white p-2 shadow-2xl ring-1 ring-black/5">
+              {ownerProfile?.avatar_url ? (
+                <img src={ownerProfile.avatar_url} alt="Avatar" className="h-full w-full object-cover rounded-[2rem]" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gray-50 rounded-[2rem] text-gray-300">
+                  <UserIcon size={48} />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h1 className="text-4xl font-black tracking-tighter text-black">
+                {linkData?.name || "Galeria Compartilhada"}
+              </h1>
+              <p className="flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400">
+                <span>Organizado por</span>
+                <span className="text-black">{ownerProfile?.display_name || "Dono da Lista"}</span>
+              </p>
+            </div>
+
+            <p className="mt-6 max-w-md text-lg font-medium text-gray-500">
+              Capture momentos agora ou envie arquivos da sua galeria para contribuir.
+            </p>
+          </div>
         </motion.div>
 
         <div className="mt-8 mx-auto max-w-lg space-y-4">
