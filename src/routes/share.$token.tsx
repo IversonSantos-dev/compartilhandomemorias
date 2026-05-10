@@ -53,7 +53,7 @@ function PublicUpload() {
           // Fetch owner info separately to avoid complex join issues
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('display_name')
+            .select('display_name, avatar_url, banner_url')
             .eq('id', linkData.owner_id)
             .maybeSingle();
           
