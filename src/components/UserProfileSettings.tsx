@@ -222,8 +222,8 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
             ) : (
               <>
                 <label className="flex cursor-pointer flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors">
-                  <Upload size={24} />
-                  <span className="text-sm font-bold">Alterar Capa</span>
+                  <Scissors size={24} />
+                  <span className="text-sm font-bold">Recortar Capa</span>
                   <input 
                     type="file" 
                     className="hidden" 
@@ -240,15 +240,13 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
                     }}
                     className="flex flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors"
                   >
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current">
-                      <div className="h-1 w-1 rounded-full bg-current" />
-                    </div>
+                    <Layout size={24} />
                     <span className="text-sm font-bold">Ajustar Foco</span>
                   </button>
                 )}
               </>
             )}
-      </div>
+          </div>
 
       <AnimatePresence>
         {cropImage && (
