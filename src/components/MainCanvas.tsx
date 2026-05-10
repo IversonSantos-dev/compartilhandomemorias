@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CameraCapture } from './CameraCapture';
 import { PhotoGallery } from './PhotoGallery';
 import { AuthModal } from './AuthModal';
+import { ShareGallery } from './ShareGallery';
 import { toast, Toaster } from 'sonner';
 import confetti from 'canvas-confetti';
 
@@ -118,6 +119,7 @@ export const MainCanvas: React.FC = () => {
           <div className="flex items-center gap-4">
             {session ? (
               <div className="flex items-center gap-3">
+                <ShareGallery />
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white shadow-sm ring-1 ring-black/5">
                   <span className="text-sm font-bold uppercase">
                     {session.user.email?.[0]}
