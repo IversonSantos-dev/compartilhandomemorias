@@ -26,6 +26,7 @@ function PublicUpload() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [linkData, setLinkData] = useState<any>(null);
   const [ownerInfo, setOwnerInfo] = useState<any>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
@@ -48,6 +49,7 @@ function PublicUpload() {
           setIsValid(false);
         } else {
           setIsValid(true);
+          setLinkData(linkData);
           // Fetch owner info separately to avoid complex join issues
           const { data: profileData } = await supabase
             .from('profiles')
@@ -67,11 +69,12 @@ function PublicUpload() {
   }, [token]);
 
   const fetchSharedPhotos = async () => {
-    if (!token) return;
+    if (!token || !linkData) return;
     try {
       const { data, error } = await supabase
         .from('photos')
         .select('*')
+        .or(`share_token.eq.${token},user_id.eq.${linkData.owner_id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -84,7 +87,7 @@ function PublicUpload() {
   };
 
   useEffect(() => {
-    if (isValid) {
+    if (isValid && linkData) {
       fetchSharedPhotos();
 
       // Real-time updates for the shared gallery
@@ -94,7 +97,7 @@ function PublicUpload() {
           event: 'INSERT', 
           schema: 'public', 
           table: 'photos',
-          filter: `share_token=eq.${token}` 
+          filter: `share_token=eq.${token},user_id=eq.${linkData.owner_id}` 
         }, () => {
           fetchSharedPhotos();
         })
@@ -104,7 +107,7 @@ function PublicUpload() {
         supabase.removeChannel(channel);
       };
     }
-  }, [isValid, token]);
+  }, [isValid, token, linkData]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
