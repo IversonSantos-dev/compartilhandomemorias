@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           caption: string | null
           created_at: string
+          guest_name: string | null
           id: string
           image_url: string
           share_token: string | null
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           caption?: string | null
           created_at?: string
+          guest_name?: string | null
           id?: string
           image_url: string
           share_token?: string | null
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           caption?: string | null
           created_at?: string
+          guest_name?: string | null
           id?: string
           image_url?: string
           share_token?: string | null

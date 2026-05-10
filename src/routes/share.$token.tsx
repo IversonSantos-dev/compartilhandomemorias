@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon, Clock } from 'lucide-react';
+import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon, Clock, Filter, Calendar, User as UserIcon, Type } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast, Toaster } from 'sonner';
 import confetti from 'canvas-confetti';
@@ -12,6 +12,7 @@ interface Photo {
   image_url: string;
   created_at: string;
   caption: string | null;
+  guest_name?: string | null;
 }
 
 export const Route = createFileRoute("/share/$token")({
@@ -28,6 +29,9 @@ function PublicUpload() {
   const [ownerInfo, setOwnerInfo] = useState<any>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'today' | 'week'>('all');
+  const [guestNameInput, setGuestNameInput] = useState('');
+  const [captionInput, setCaptionInput] = useState('');
 
   useEffect(() => {
     const validateToken = async () => {
@@ -129,8 +133,9 @@ function PublicUpload() {
         .insert({
           user_id: ownerData.owner_id,
           image_url: publicUrl,
-          caption: "Public Upload",
-          share_token: token
+          caption: captionInput || "Public Upload",
+          share_token: token,
+          guest_name: guestNameInput || "Convidado"
         });
 
       if (dbError) throw dbError;
@@ -201,7 +206,31 @@ function PublicUpload() {
           </p>
         </motion.div>
 
-        <div className="mt-12 flex flex-col items-center gap-6">
+        <div className="mt-8 space-y-4">
+          <div className="flex flex-col gap-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <div className="relative">
+              <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                value={guestNameInput}
+                onChange={(e) => setGuestNameInput(e.target.value)}
+                placeholder="Seu nome (opcional)"
+                className="w-full rounded-2xl bg-gray-50 py-3 pl-12 pr-4 text-sm font-medium text-black ring-1 ring-black/5 transition-all focus:bg-white focus:outline-none focus:ring-black/10"
+              />
+            </div>
+            <div className="relative">
+              <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                value={captionInput}
+                onChange={(e) => setCaptionInput(e.target.value)}
+                placeholder="Legenda da foto"
+                className="w-full rounded-2xl bg-gray-50 py-3 pl-12 pr-4 text-sm font-medium text-black ring-1 ring-black/5 transition-all focus:bg-white focus:outline-none focus:ring-black/10"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-6">
           <button
             onClick={() => setIsCameraOpen(true)}
             disabled={isUploading}
@@ -222,6 +251,7 @@ function PublicUpload() {
               disabled={isUploading}
             />
           </label>
+        </div>
 
           <AnimatePresence>
             {isUploading && (
@@ -253,9 +283,43 @@ function PublicUpload() {
 
         {/* Shared Gallery Section */}
         <section className="mt-20">
-          <div className="mb-8 flex items-center justify-center gap-3">
-            <ImageIcon className="text-black" size={24} />
-            <h3 className="text-xl font-black tracking-tight">Memórias dos Convidados</h3>
+          <div className="mb-8 flex flex-col gap-6">
+            <div className="flex items-center justify-center gap-3">
+              <ImageIcon className="text-black" size={24} />
+              <h3 className="text-xl font-black tracking-tight">Memórias dos Convidados</h3>
+            </div>
+
+            {/* Filtros e Contadores */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {[
+                { id: 'all', label: 'Tudo', icon: Filter, count: photos.length },
+                { id: 'today', label: 'Hoje', icon: Clock, count: photos.filter(p => new Date(p.created_at).toDateString() === new Date().toDateString()).length },
+                { id: 'week', label: 'Semana', icon: Calendar, count: photos.filter(p => {
+                  const date = new Date(p.created_at);
+                  const now = new Date();
+                  const diff = now.getTime() - date.getTime();
+                  return diff <= 7 * 24 * 60 * 60 * 1000;
+                }).length }
+              ].map((btn) => (
+                <button
+                  key={btn.id}
+                  onClick={() => setFilter(btn.id as any)}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all active:scale-95 ${
+                    filter === btn.id 
+                      ? 'bg-black text-white shadow-lg shadow-black/10' 
+                      : 'bg-white text-gray-500 ring-1 ring-black/5 hover:bg-gray-50'
+                  }`}
+                >
+                  <btn.icon size={14} />
+                  <span>{btn.label}</span>
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
+                    filter === btn.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {btn.count}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {loadingPhotos ? (
@@ -267,22 +331,50 @@ function PublicUpload() {
           ) : photos.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
               <AnimatePresence>
-                {photos.map((photo, index) => (
+                {photos
+                  .filter(photo => {
+                    if (filter === 'all') return true;
+                    const date = new Date(photo.created_at);
+                    if (filter === 'today') return date.toDateString() === new Date().toDateString();
+                    if (filter === 'week') {
+                      const now = new Date();
+                      const diff = now.getTime() - date.getTime();
+                      return diff <= 7 * 24 * 60 * 60 * 1000;
+                    }
+                    return true;
+                  })
+                  .map((photo) => (
                   <motion.div
                     key={photo.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="relative aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
+                    className="group relative aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
                   >
                     <img
                       src={photo.image_url}
                       alt="Shared moment"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                       loading="lazy"
                     />
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-black/20 p-2 backdrop-blur-md">
-                      <Clock size={12} className="text-white/80" />
-                      <span className="text-[10px] font-bold text-white uppercase tracking-tighter">
+                    <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      {photo.caption && (
+                        <p className="mb-1 text-xs font-bold text-white line-clamp-2">{photo.caption}</p>
+                      )}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <UserIcon size={10} className="text-white/70" />
+                          <span className="truncate text-[10px] font-black uppercase tracking-tighter text-white">
+                            {photo.guest_name || 'Convidado'}
+                          </span>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-medium text-white/60">
+                          {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 backdrop-blur-md group-hover:hidden">
+                      <Clock size={10} className="text-white/80" />
+                      <span className="text-[9px] font-bold text-white uppercase tracking-tighter">
                         {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
