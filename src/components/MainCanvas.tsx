@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LogIn, LogOut, User, Camera, Upload as UploadIcon, Image as ImageIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CameraCapture } from './CameraCapture';
 import { PhotoGallery } from './PhotoGallery';
 import { AuthModal } from './AuthModal';
