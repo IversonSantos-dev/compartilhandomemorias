@@ -128,17 +128,30 @@ export const PhotoGallery: React.FC = () => {
             )}
 
             <div className="p-4">
-              {photo.caption && (
-                <p className="text-sm font-medium text-gray-800">{photo.caption}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-400">
-                {new Date(photo.created_at).toLocaleDateString('pt-BR', {
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  {photo.caption && (
+                    <p className="text-sm font-medium text-gray-800">{photo.caption}</p>
+                  )}
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-gray-300">
+                    {new Date(photo.created_at).toLocaleDateString('pt-BR', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                {index === 0 && (
+                  <motion.span 
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="rounded-full bg-black px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-white"
+                  >
+                    Novo
+                  </motion.span>
+                )}
+              </div>
             </div>
           </motion.div>
         ))}
