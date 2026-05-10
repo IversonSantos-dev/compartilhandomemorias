@@ -11,10 +11,12 @@ interface Photo {
   user_id: string;
   created_at: string;
   guest_name?: string | null;
-  reactions?: Record<string, number> | null;
+  reactions?: Record<string, number> | any;
 }
 
 export const PhotoGallery: React.FC = () => {
+  type Reactions = Record<string, number>;
+
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
