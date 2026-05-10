@@ -94,14 +94,25 @@ export const MainCanvas: React.FC = () => {
           <div className="flex items-center gap-4">
             {session ? (
               <div className="flex items-center gap-3">
-                <span className="hidden text-sm font-medium text-gray-500 sm:block">
-                  Olá, {session.user.email?.split('@')[0]}
-                </span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white shadow-sm ring-1 ring-black/5">
+                  <span className="text-sm font-bold uppercase">
+                    {session.user.email?.[0]}
+                  </span>
+                </div>
+                <div className="hidden flex-col sm:flex">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                    Usuário Logado
+                  </span>
+                  <span className="text-sm font-bold text-black">
+                    {session.user.email?.split('@')[0]}
+                  </span>
+                </div>
                 <button
                   onClick={handleLogout}
-                  className="rounded-full bg-white p-2.5 text-black shadow-sm ring-1 ring-black/5 transition-all hover:bg-gray-50"
+                  className="ml-2 rounded-full bg-white p-2.5 text-black shadow-sm ring-1 ring-black/5 transition-all hover:bg-gray-50 active:scale-95"
+                  title="Sair"
                 >
-                  <LogOut size={20} />
+                  <LogOut size={18} />
                 </button>
               </div>
             ) : (
