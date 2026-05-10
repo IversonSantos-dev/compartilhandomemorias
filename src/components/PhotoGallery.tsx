@@ -92,11 +92,19 @@ export const PhotoGallery: React.FC = () => {
         {photos.map((photo, index) => (
           <motion.div
             key={photo.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1, 
+              y: 0,
+              boxShadow: index === 0 ? "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" : "0 1px 2px 0 rgb(0 0 0 / 0.05)"
+            }}
             exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ delay: index * 0.05 }}
-            className="group relative break-inside-avoid overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 transition-all hover:shadow-md"
+            transition={{ 
+              duration: 0.4,
+              ease: "easeOut"
+            }}
+            className={`group relative break-inside-avoid overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
           >
             <img
               src={photo.image_url}
