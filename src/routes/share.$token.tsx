@@ -54,6 +54,47 @@ function PublicUpload() {
     validateToken();
   }, [token]);
 
+  const fetchSharedPhotos = async () => {
+    if (!token) return;
+    try {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .eq('share_token', token)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPhotos(data || []);
+    } catch (err) {
+      console.error("Error fetching shared photos:", err);
+    } finally {
+      setLoadingPhotos(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isValid) {
+      fetchSharedPhotos();
+
+      // Real-time updates for the shared gallery
+      const channel = supabase
+        .channel(`public-photos-${token}`)
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'photos',
+          filter: `share_token=eq.${token}` 
+        }, () => {
+          fetchSharedPhotos();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [isValid, token]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !token) return;
