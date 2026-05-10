@@ -204,7 +204,7 @@ function PublicUpload() {
         </Link>
       </header>
 
-      <main className="mx-auto max-w-lg px-6 text-center">
+      <main className="mx-auto max-w-7xl px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -217,7 +217,7 @@ function PublicUpload() {
           </p>
         </motion.div>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 mx-auto max-w-lg space-y-4">
           <div className="flex flex-col gap-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
             <div className="relative">
               <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -334,13 +334,13 @@ function PublicUpload() {
           </div>
 
           {loadingPhotos ? (
-            <div className="grid grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map((i) => (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="aspect-square animate-pulse rounded-3xl bg-gray-200" />
               ))}
             </div>
           ) : photos.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               <AnimatePresence>
                 {photos
                   .filter(photo => {

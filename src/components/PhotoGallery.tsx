@@ -86,7 +86,7 @@ export const PhotoGallery: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div key={i} className="aspect-[4/5] animate-pulse rounded-3xl bg-gray-200" />
         ))}
@@ -95,7 +95,7 @@ export const PhotoGallery: React.FC = () => {
   }
 
   return (
-    <div className="columns-1 gap-6 space-y-6 sm:columns-2 lg:columns-3">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       <AnimatePresence>
         {photos.map((photo, index) => (
           <motion.div
@@ -113,12 +113,13 @@ export const PhotoGallery: React.FC = () => {
               ease: "easeOut"
             }}
             onClick={() => setSelectedMedia(photo)}
-            className={`group relative break-inside-avoid cursor-pointer overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
+            className={`group relative aspect-square cursor-pointer overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
           >
+            <div className="absolute inset-0">
             {photo.image_url.toLowerCase().endsWith('.mp4') ? (
               <video
                 src={photo.image_url}
-                className="w-full"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 autoPlay
                 muted
                 loop
@@ -128,7 +129,7 @@ export const PhotoGallery: React.FC = () => {
               <img
                 src={photo.image_url}
                 alt={photo.caption || "Shared moment"}
-                className="w-full object-cover"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"
               />
             )}
