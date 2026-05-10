@@ -462,7 +462,7 @@ function PublicUpload() {
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1">
                             {Object.entries(photo.reactions || {}).slice(0, 3).map(([emoji, count]) => (
-                              <span key={emoji} className="text-[10px] text-white/90">{emoji} {count}</span>
+                              <span key={emoji} className="text-[10px] text-white/90">{emoji} {(count as number)}</span>
                             ))}
                           </div>
                           <span className="shrink-0 text-[10px] font-medium text-white/60">
