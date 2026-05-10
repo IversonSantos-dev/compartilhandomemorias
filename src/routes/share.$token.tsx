@@ -112,7 +112,7 @@ export const PublicUpload: React.FC = () => {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#F9F9F9] p-6 text-center">
         <div className="mb-6 rounded-full bg-red-50 p-6 text-red-500">
-          <X size={48} />
+          <CloseIcon size={48} />
         </div>
         <h1 className="text-2xl font-black tracking-tighter text-black">Link Inválido ou Expirado</h1>
         <p className="mt-2 text-gray-500">Este link de compartilhamento não está mais ativo.</p>
