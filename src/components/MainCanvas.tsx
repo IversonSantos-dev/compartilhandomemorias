@@ -6,6 +6,7 @@ import { CameraCapture } from './CameraCapture';
 import { PhotoGallery } from './PhotoGallery';
 import { AuthModal } from './AuthModal';
 import { ShareGallery } from './ShareGallery';
+import { UserProfileSettings } from './UserProfileSettings';
 import { toast, Toaster } from 'sonner';
 import confetti from 'canvas-confetti';
 
