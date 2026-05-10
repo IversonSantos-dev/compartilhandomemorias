@@ -29,8 +29,14 @@ export const PhotoGallery: React.FC = () => {
     // Subscribe to changes
     const channel = supabase
       .channel('photos-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'photos' }, () => {
-        fetchPhotos();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'photos' }, (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          setPhotos(prev => prev.map(p => 
+            p.id === payload.new.id ? { ...p, ...payload.new } : p
+          ));
+        } else {
+          fetchPhotos();
+        }
       })
       .subscribe();
 

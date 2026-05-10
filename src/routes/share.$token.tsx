@@ -135,6 +135,14 @@ function PublicUpload() {
             p.id === payload.new.id ? { ...p, ...payload.new } : p
           ));
         })
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'photos',
+          filter: `share_token=eq.${token}`
+        }, () => {
+          fetchSharedPhotos();
+        })
         .subscribe();
 
       return () => {

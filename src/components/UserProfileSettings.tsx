@@ -24,6 +24,9 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
   const [displayName, setDisplayName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
+  const [isAdjustingFocus, setIsAdjustingFocus] = useState(false);
+  const [tempFocus, setTempFocus] = useState({ x: 50, y: 50 });
+
   useEffect(() => {
     fetchProfile();
   }, [userId]);
@@ -40,6 +43,10 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
       if (data) {
         setProfile(data);
         setDisplayName(data.display_name || '');
+        if (data.banner_focus_point) {
+          const [x, y] = data.banner_focus_point.split(' ').map((v: string) => parseInt(v));
+          setTempFocus({ x, y });
+        }
       }
     } catch (err: any) {
       console.error("Error fetching profile:", err);
@@ -133,13 +140,22 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
     <div className="w-full space-y-6">
       {/* Banner & Avatar Preview */}
       <div className="relative overflow-hidden rounded-[2.5rem] bg-white ring-1 ring-black/5 shadow-sm">
-        <div className="group relative h-48 w-full bg-gray-100">
+        <div 
+          className="group relative h-48 w-full bg-gray-100 overflow-hidden cursor-crosshair"
+          onClick={(e) => {
+            if (!isAdjustingFocus || !profile?.banner_url) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+            const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+            setTempFocus({ x, y });
+          }}
+        >
           {profile?.banner_url ? (
             <img 
               src={profile.banner_url} 
               alt="Banner" 
-              className="h-full w-full object-cover transition-all duration-300" 
-              style={{ objectPosition: profile.banner_focus_point || '50% 50%' }}
+              className="h-full w-full object-cover transition-all duration-300 pointer-events-none" 
+              style={{ objectPosition: isAdjustingFocus ? `${tempFocus.x}% ${tempFocus.y}%` : (profile.banner_focus_point || '50% 50%') }}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-gray-300">
@@ -147,34 +163,73 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
             </div>
           )}
           
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 bg-black/40 gap-4">
-            <label className="flex cursor-pointer flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors">
-              <Upload size={24} />
-              <span className="text-sm font-bold">Alterar Capa</span>
-              <input 
-                type="file" 
-                className="hidden" 
-                accept="image/*" 
-                onChange={(e) => handleImageUpload(e, 'banner')}
-              />
-            </label>
-            
-            {profile?.banner_url && (
-              <button 
-                onClick={() => {
-                  const x = prompt("Ponto focal horizontal (0-100)%:", "50");
-                  const y = prompt("Ponto focal vertical (0-100)%:", "50");
-                  if (x !== null && y !== null) {
-                    handleUpdateFocusPoint(`${x}% ${y}%`);
-                  }
-                }}
-                className="flex flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current">
-                  <div className="h-1 w-1 rounded-full bg-current" />
-                </div>
-                <span className="text-sm font-bold">Ajustar Foco</span>
-              </button>
+          {isAdjustingFocus && (
+            <div 
+              className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white bg-black/50 shadow-xl pointer-events-none"
+              style={{ left: `${tempFocus.x}%`, top: `${tempFocus.y}%` }}
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-1 w-1 rounded-full bg-white" />
+              </div>
+            </div>
+          )}
+
+          <div className={`absolute inset-0 flex items-center justify-center transition-opacity gap-4 ${isAdjustingFocus ? 'bg-black/20' : 'bg-black/40 opacity-0 group-hover:opacity-100'}`}>
+            {isAdjustingFocus ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUpdateFocusPoint(`${tempFocus.x}% ${tempFocus.y}%`);
+                    setIsAdjustingFocus(false);
+                  }}
+                  className="flex items-center gap-2 rounded-full bg-white px-6 py-2 text-sm font-bold text-black shadow-lg"
+                >
+                  <Save size={18} />
+                  Salvar Foco
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAdjustingFocus(false);
+                    if (profile?.banner_focus_point) {
+                      const [x, y] = profile.banner_focus_point.split(' ').map((v: string) => parseInt(v));
+                      setTempFocus({ x, y });
+                    }
+                  }}
+                  className="rounded-full bg-black/50 p-2 text-white backdrop-blur-md"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <label className="flex cursor-pointer flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors">
+                  <Upload size={24} />
+                  <span className="text-sm font-bold">Alterar Capa</span>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={(e) => handleImageUpload(e, 'banner')}
+                  />
+                </label>
+                
+                {profile?.banner_url && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsAdjustingFocus(true);
+                    }}
+                    className="flex flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors"
+                  >
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current">
+                      <div className="h-1 w-1 rounded-full bg-current" />
+                    </div>
+                    <span className="text-sm font-bold">Ajustar Foco</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
