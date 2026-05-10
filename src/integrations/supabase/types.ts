@@ -49,16 +49,22 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          banner_url: string | null
           created_at: string
           display_name: string | null
           id: string
         }
         Insert: {
+          avatar_url?: string | null
+          banner_url?: string | null
           created_at?: string
           display_name?: string | null
           id: string
         }
         Update: {
+          avatar_url?: string | null
+          banner_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -70,6 +76,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean | null
+          name: string | null
           owner_id: string
           token: string
         }
@@ -77,6 +84,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          name?: string | null
           owner_id: string
           token?: string
         }
@@ -84,6 +92,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          name?: string | null
           owner_id?: string
           token?: string
         }
