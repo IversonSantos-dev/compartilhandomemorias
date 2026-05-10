@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Edit3, Heart, Share2, MoreVertical, Loader2, X, User, Clock } from 'lucide-react';
+import { Trash2, Edit3, Heart, Share2, MoreVertical, Loader2, X, User, Clock, Download, CheckCircle2, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Photo {
@@ -21,6 +21,9 @@ export const PhotoGallery: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<Photo | null>(null);
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     fetchPhotos();
@@ -117,7 +120,61 @@ export const PhotoGallery: React.FC = () => {
     }
   };
 
-  if (loading) {
+  const downloadImage = async (imageUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'photo';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error downloading photo:", err);
+      toast.error("Erro ao baixar foto.");
+    }
+  };
+
+  const handleDownloadSelected = async () => {
+    if (selectedPhotos.length === 0) return;
+    setIsDownloading(true);
+    toast.info(`Iniciando download de ${selectedPhotos.length} fotos...`);
+
+    try {
+      for (const photoId of selectedPhotos) {
+        const photo = photos.find(p => p.id === photoId);
+        if (photo) {
+          const fileName = `foto-${photoId}.${photo.image_url.split('.').pop()}`;
+          await downloadImage(photo.image_url, fileName);
+          // Small delay to avoid browser blocking multiple downloads
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+      toast.success("Downloads concluídos!");
+      setIsSelectionMode(false);
+      setSelectedPhotos([]);
+    } catch (err) {
+      toast.error("Erro no download múltiplo.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const toggleSelectPhoto = (id: string) => {
+    setSelectedPhotos(prev => 
+      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectionMode = () => {
+    if (isSelectionMode) {
+      setSelectedPhotos([]);
+    }
+    setIsSelectionMode(!isSelectionMode);
+  };
     return (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -128,7 +185,34 @@ export const PhotoGallery: React.FC = () => {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-black uppercase tracking-widest text-white/50">Mural de Momentos</h2>
+        <div className="flex items-center gap-2">
+          {isSelectionMode && (
+            <button
+              onClick={handleDownloadSelected}
+              disabled={selectedPhotos.length === 0 || isDownloading}
+              className="flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              Salvar Selecionadas ({selectedPhotos.length})
+            </button>
+          )}
+          <button
+            onClick={toggleSelectionMode}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
+              isSelectionMode 
+                ? "bg-white/20 text-white ring-1 ring-white/30" 
+                : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+            }`}
+          >
+            {isSelectionMode ? "Cancelar" : "Selecionar Vários"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       <AnimatePresence>
         {photos.map((photo, index) => (
           <motion.div
@@ -145,9 +229,18 @@ export const PhotoGallery: React.FC = () => {
               duration: 0.4,
               ease: "easeOut"
             }}
-            onClick={() => setSelectedMedia(photo)}
-            className={`group relative aspect-square cursor-pointer overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
+            onClick={() => isSelectionMode ? toggleSelectPhoto(photo.id) : setSelectedMedia(photo)}
+            className={`group relative aspect-square cursor-pointer overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 && !isSelectionMode ? 'ring-2 ring-black/10 z-10' : ''} ${selectedPhotos.includes(photo.id) ? 'ring-4 ring-blue-500 shadow-blue-500/20' : ''}`}
           >
+            {isSelectionMode && (
+              <div className="absolute top-4 left-4 z-30">
+                {selectedPhotos.includes(photo.id) ? (
+                  <CheckCircle2 size={24} className="text-blue-500 fill-white" />
+                ) : (
+                  <Circle size={24} className="text-white/50 fill-black/20" />
+                )}
+              </div>
+            )}
             <div className="absolute inset-0">
               {photo.image_url.toLowerCase().endsWith('.mp4') ? (
                 <video
@@ -290,9 +383,18 @@ export const PhotoGallery: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-                    <Clock size={12} />
-                    <span>{new Date(selectedMedia.created_at).toLocaleString('pt-BR')}</span>
+                  <div className="flex flex-col items-end gap-3">
+                    <button
+                      onClick={() => downloadImage(selectedMedia.image_url, `foto-${selectedMedia.id}.${selectedMedia.image_url.split('.').pop()}`)}
+                      className="flex items-center gap-2 rounded-full bg-white px-6 py-2 text-sm font-black text-black transition-transform hover:scale-105 active:scale-95"
+                    >
+                      <Download size={18} />
+                      SALVAR FOTO
+                    </button>
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                      <Clock size={12} />
+                      <span>{new Date(selectedMedia.created_at).toLocaleString('pt-BR')}</span>
+                    </div>
                   </div>
                 </div>
               </div>
