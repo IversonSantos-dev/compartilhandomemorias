@@ -206,7 +206,31 @@ function PublicUpload() {
           </p>
         </motion.div>
 
-        <div className="mt-12 flex flex-col items-center gap-6">
+        <div className="mt-8 space-y-4">
+          <div className="flex flex-col gap-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <div className="relative">
+              <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                value={guestNameInput}
+                onChange={(e) => setGuestNameInput(e.target.value)}
+                placeholder="Seu nome (opcional)"
+                className="w-full rounded-2xl bg-gray-50 py-3 pl-12 pr-4 text-sm font-medium text-black ring-1 ring-black/5 transition-all focus:bg-white focus:outline-none focus:ring-black/10"
+              />
+            </div>
+            <div className="relative">
+              <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                value={captionInput}
+                onChange={(e) => setCaptionInput(e.target.value)}
+                placeholder="Legenda da foto"
+                className="w-full rounded-2xl bg-gray-50 py-3 pl-12 pr-4 text-sm font-medium text-black ring-1 ring-black/5 transition-all focus:bg-white focus:outline-none focus:ring-black/10"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-6">
           <button
             onClick={() => setIsCameraOpen(true)}
             disabled={isUploading}
