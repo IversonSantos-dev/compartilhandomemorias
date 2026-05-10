@@ -481,7 +481,7 @@ function PublicUpload() {
                     </div>
 
                     {/* Reactions Overlay */}
-                    <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 z-20">
+                    <div className="absolute top-2 left-2 flex gap-1.5 opacity-100 sm:opacity-0 transition-opacity group-hover:opacity-100 z-20">
                       {['❤️', '😊', '🎉'].map((emoji) => (
                         <button
                           key={emoji}
@@ -489,7 +489,7 @@ function PublicUpload() {
                             e.stopPropagation();
                             handleReaction(photo.id, emoji);
                           }}
-                          className="rounded-full bg-white/20 p-1.5 text-xs backdrop-blur-md ring-1 ring-white/30 transition-transform hover:scale-125 active:scale-90"
+                          className="rounded-full bg-white/40 p-2 text-sm backdrop-blur-md ring-1 ring-white/50 transition-all hover:scale-125 hover:bg-white active:scale-90 shadow-lg"
                         >
                           {emoji}
                         </button>
