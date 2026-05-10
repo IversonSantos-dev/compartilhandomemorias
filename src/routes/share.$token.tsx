@@ -12,6 +12,7 @@ interface Photo {
   image_url: string;
   created_at: string;
   caption: string | null;
+  guest_name?: string | null;
 }
 
 export const Route = createFileRoute("/share/$token")({
