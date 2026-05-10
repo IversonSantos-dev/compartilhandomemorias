@@ -32,6 +32,7 @@ function PublicUpload() {
   const [filter, setFilter] = useState<'all' | 'today' | 'week'>('all');
   const [guestNameInput, setGuestNameInput] = useState('');
   const [captionInput, setCaptionInput] = useState('');
+  const [selectedMedia, setSelectedMedia] = useState<Photo | null>(null);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -355,7 +356,8 @@ function PublicUpload() {
                     key={photo.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="group relative aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
+                    onClick={() => setSelectedMedia(photo)}
+                    className="group relative aspect-square cursor-pointer overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
                   >
                     {photo.image_url.toLowerCase().endsWith('.mp4') ? (
                       <video
