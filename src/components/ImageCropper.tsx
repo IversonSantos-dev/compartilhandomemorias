@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { X, Check, Loader2 } from 'lucide-react';
 
 interface ImageCropperProps {
@@ -18,6 +18,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
 }) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [currentAspect, setCurrentAspect] = useState<number | undefined>(aspect);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -86,7 +87,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           image={image}
           crop={crop}
           zoom={zoom}
-          aspect={aspect}
+          aspect={currentAspect}
           onCropChange={onCropChange}
           onCropComplete={onCropCompleteInternal}
           onZoomChange={onZoomChange}
@@ -121,11 +122,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
               ].map((ratio) => (
                 <button
                   key={ratio.label}
-                  onClick={() => {
-                    // We need a local state to handle dynamic aspect changes
-                    // or pass a setter from props. Let's add local state.
-                    setCurrentAspect(ratio.value);
-                  }}
+                  onClick={() => setCurrentAspect(ratio.value)}
                   className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                     currentAspect === ratio.value 
                       ? 'bg-white text-black' 
@@ -138,6 +135,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             </div>
           </div>
           
+          <div className="flex items-center justify-between gap-4">
             <button
               onClick={onCancel}
               className="flex items-center gap-2 rounded-full bg-white/10 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-white/20"
@@ -156,7 +154,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
               ) : (
                 <>
                   <Check size={18} />
-                  Confirmar Recorte
+                  Confirmar
                 </>
               )}
             </button>
