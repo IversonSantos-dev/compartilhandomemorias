@@ -13,8 +13,7 @@ export const MainCanvas: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadQueue, setUploadQueue] = useState<{ id: string; file: File; progress: number; preview: string }[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
