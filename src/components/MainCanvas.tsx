@@ -158,29 +158,97 @@ export const MainCanvas: React.FC = () => {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 pb-24 pt-8">
-        {/* Call to Action Section */}
-        <section className="mb-16 flex flex-col items-center justify-center text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <h2 className="max-w-2xl text-4xl font-black leading-tight tracking-tight text-black sm:text-6xl">
-              Capture e compartilhe momentos <span className="text-gray-400 italic">instantaneamente.</span>
-            </h2>
-            <p className="mt-6 text-lg text-gray-500 font-medium">
-              Uma galeria colaborativa para nossas melhores memórias.
-            </p>
-          </motion.div>
+        {/* Landing Page Content (When not logged in) */}
+        {!session && (
+          <section className="mb-16 flex flex-col items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center"
+            >
+              <h2 className="max-w-3xl text-4xl font-black leading-tight tracking-tight text-black sm:text-7xl">
+                Crie memórias <span className="text-gray-400 italic">vivas</span> com quem você ama.
+              </h2>
+              <p className="mx-auto mt-8 max-w-xl text-lg font-medium text-gray-500">
+                O Shared Memory Canvas é uma galeria privada e colaborativa. 
+                Crie sua conta para começar a colecionar momentos únicos.
+              </p>
+            </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-10 flex flex-col items-center gap-6"
-          >
-            {session ? (
-              <div className="flex flex-col items-center gap-6 w-full max-w-md">
+            <div className="mt-20 grid w-full grid-cols-1 gap-8 md:grid-cols-3">
+              {[
+                {
+                  title: "Captura Instantânea",
+                  desc: "Capture fotos diretamente do app ou faça upload da sua galeria num piscar de olhos.",
+                  icon: <Camera className="h-6 w-6" />
+                },
+                {
+                  title: "QR Code Inteligente",
+                  desc: "Gere links únicos para que seus convidados contribuam sem precisar criar conta.",
+                  icon: <ImageIcon className="h-6 w-6" />
+                },
+                {
+                  title: "Segurança Total",
+                  desc: "Suas fotos são privadas. Apenas você e quem tiver seu link secreto podem ver.",
+                  icon: <User className="h-6 w-6" />
+                }
+              ].map((feature, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * (i + 1) }}
+                  className="rounded-[2.5rem] bg-white p-10 shadow-sm ring-1 ring-black/5"
+                >
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-white">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-bold tracking-tight text-black">{feature.title}</h3>
+                  <p className="mt-3 text-sm font-medium leading-relaxed text-gray-500">
+                    {feature.desc}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-16"
+            >
+              <button
+                onClick={handleLogin}
+                className="rounded-full bg-black px-10 py-5 text-lg font-bold text-white shadow-2xl shadow-black/10 transition-all hover:bg-gray-800 active:scale-95"
+              >
+                Começar Agora
+              </button>
+            </motion.div>
+          </section>
+        )}
+
+        {/* Dashboard (When logged in) */}
+        {session && (
+          <section className="space-y-16">
+            <div className="flex flex-col items-center justify-center text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h2 className="text-4xl font-black tracking-tight text-black sm:text-5xl">
+                  Sua Galeria <span className="text-gray-400 italic">Privada</span>
+                </h2>
+                <p className="mt-4 text-gray-500 font-medium">
+                  Capture novos momentos ou gerencie suas memórias compartilhadas.
+                </p>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mt-10 flex flex-col items-center gap-6"
+              >
                 <div className="flex flex-wrap justify-center gap-4">
                   <button
                     onClick={() => setIsCameraOpen(true)}
@@ -204,34 +272,29 @@ export const MainCanvas: React.FC = () => {
                   </label>
                 </div>
 
-                {/* Fila de Upload com Miniaturas */}
+                {/* Fila de Upload */}
                 <AnimatePresence>
                   {uploadQueue.length > 0 && (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
-                      className="w-full space-y-3"
+                      className="w-full max-w-md space-y-3"
                     >
                       {uploadQueue.map(item => (
-                        <div 
-                          key={item.id}
-                          className="flex items-center gap-4 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5"
-                        >
-                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                        <div key={item.id} className="flex items-center gap-4 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5">
+                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl">
                             <img src={item.preview} alt="Preview" className="h-full w-full object-cover" />
                           </div>
                           <div className="flex-1 space-y-1.5">
-                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
-                              <span className="truncate max-w-[150px]">{item.file.name}</span>
+                            <div className="flex justify-between text-[10px] font-black text-gray-400">
+                              <span className="truncate max-w-[150px] uppercase">{item.file.name}</span>
                               <span>{item.progress}%</span>
                             </div>
                             <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-50">
                               <motion.div 
                                 className="h-full bg-black"
-                                initial={{ width: 0 }}
                                 animate={{ width: `${item.progress}%` }}
-                                transition={{ type: "spring", stiffness: 40, damping: 15 }}
                               />
                             </div>
                           </div>
@@ -240,23 +303,18 @@ export const MainCanvas: React.FC = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-            ) : (
-              <p className="rounded-2xl bg-white px-8 py-4 text-sm font-semibold text-gray-500 ring-1 ring-black/5">
-                Faça login para adicionar seus próprios momentos.
-              </p>
-            )}
-          </motion.div>
-        </section>
+              </motion.div>
+            </div>
 
-        {/* Gallery Section */}
-        <section>
-          <div className="mb-8 flex items-center gap-3">
-            <ImageIcon className="text-black" size={24} />
-            <h3 className="text-xl font-bold tracking-tight">Memórias Recentes</h3>
-          </div>
-          <PhotoGallery />
-        </section>
+            <div>
+              <div className="mb-8 flex items-center gap-3 border-b border-gray-100 pb-4">
+                <ImageIcon className="text-black" size={24} />
+                <h3 className="text-xl font-bold tracking-tight text-black">Meus Momentos</h3>
+              </div>
+              <PhotoGallery />
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Floating Camera Button for Mobile (Bottom Right) */}
