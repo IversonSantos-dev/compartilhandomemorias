@@ -191,39 +191,52 @@ export const MainCanvas: React.FC = () => {
                   </button>
                   
                   <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white px-8 py-4 text-lg font-bold text-black ring-1 ring-black/10 transition-all hover:bg-gray-50 hover:shadow-md active:scale-95">
-                    <UploadIcon className={isUploading ? "animate-bounce" : ""} size={24} />
+                    <UploadIcon className={uploadQueue.length > 0 ? "animate-bounce" : ""} size={24} />
                     Upload
                     <input 
                       type="file" 
                       className="hidden" 
                       accept="image/*" 
+                      multiple
                       onChange={handleFileUpload}
-                      disabled={isUploading}
+                      disabled={uploadQueue.length > 0}
                     />
                   </label>
                 </div>
 
-                {/* Barra de Progresso de Upload */}
+                {/* Fila de Upload com Miniaturas */}
                 <AnimatePresence>
-                  {isUploading && (
+                  {uploadQueue.length > 0 && (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
-                      className="w-full space-y-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5"
+                      className="w-full space-y-3"
                     >
-                      <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-gray-500">
-                        <span>Enviando momento...</span>
-                        <span>{uploadProgress}%</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                        <motion.div 
-                          className="h-full bg-black"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${uploadProgress}%` }}
-                          transition={{ type: "spring", stiffness: 50, damping: 20 }}
-                        />
-                      </div>
+                      {uploadQueue.map(item => (
+                        <div 
+                          key={item.id}
+                          className="flex items-center gap-4 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5"
+                        >
+                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                            <img src={item.preview} alt="Preview" className="h-full w-full object-cover" />
+                          </div>
+                          <div className="flex-1 space-y-1.5">
+                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              <span className="truncate max-w-[150px]">{item.file.name}</span>
+                              <span>{item.progress}%</span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-50">
+                              <motion.div 
+                                className="h-full bg-black"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${item.progress}%` }}
+                                transition={{ type: "spring", stiffness: 40, damping: 15 }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </motion.div>
                   )}
                 </AnimatePresence>
