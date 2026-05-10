@@ -1,0 +1,201 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Camera, Upload, User, Layout, Save, X, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+
+interface Profile {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  banner_url: string | null;
+}
+
+interface UserProfileProps {
+  userId: string;
+  onUpdate?: () => void;
+}
+
+export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpdate }) => {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [userId]);
+
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data) {
+        setProfile(data);
+        setDisplayName(data.display_name || '');
+      }
+    } catch (err: any) {
+      console.error("Error fetching profile:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: displayName,
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+      toast.success("Perfil atualizado!");
+      setIsEditing(false);
+      fetchProfile();
+      onUpdate?.();
+    } catch (err: any) {
+      toast.error("Erro ao atualizar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSaving(true);
+    try {
+      const fileName = `${userId}/${type}-${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('photos')
+        .getPublicUrl(fileName);
+
+      const updateData = type === 'avatar' ? { avatar_url: publicUrl } : { banner_url: publicUrl };
+      
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (dbError) throw dbError;
+
+      toast.success(`${type === 'avatar' ? 'Foto de perfil' : 'Banner'} atualizado!`);
+      fetchProfile();
+      onUpdate?.();
+    } catch (err: any) {
+      toast.error("Erro no upload: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="animate-pulse h-40 w-full bg-gray-100 rounded-3xl" />;
+
+  return (
+    <div className="w-full space-y-6">
+      {/* Banner & Avatar Preview */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-white ring-1 ring-black/5 shadow-sm">
+        <div className="group relative h-48 w-full bg-gray-100">
+          {profile?.banner_url ? (
+            <img src={profile.banner_url} alt="Banner" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-gray-300">
+              <Layout size={40} />
+            </div>
+          )}
+          <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex flex-col items-center gap-2 text-white">
+              <Upload size={24} />
+              <span className="text-sm font-bold">Alterar Capa</span>
+            </div>
+            <input 
+              type="file" 
+              className="hidden" 
+              accept="image/*" 
+              onChange={(e) => handleImageUpload(e, 'banner')}
+            />
+          </label>
+        </div>
+
+        <div className="relative -mt-12 ml-8 flex items-end gap-6 pb-6">
+          <div className="group relative h-24 w-24 overflow-hidden rounded-3xl bg-white ring-4 ring-white shadow-xl">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gray-50 text-gray-300">
+                <User size={32} />
+              </div>
+            )}
+            <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              <Camera size={20} className="text-white" />
+              <input 
+                type="file" 
+                className="hidden" 
+                accept="image/*" 
+                onChange={(e) => handleImageUpload(e, 'avatar')}
+              />
+            </label>
+          </div>
+
+          <div className="mb-2 flex-1 space-y-1">
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="rounded-xl bg-gray-50 px-4 py-2 text-lg font-black tracking-tighter ring-1 ring-black/5 focus:outline-none focus:ring-black/20"
+                  autoFocus
+                />
+                <button
+                  onClick={handleUpdateProfile}
+                  disabled={saving}
+                  className="rounded-full bg-black p-2 text-white transition-all active:scale-95"
+                >
+                  {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                </button>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="rounded-full bg-gray-100 p-2 text-gray-500 transition-all active:scale-95"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-black tracking-tighter text-black">
+                  {profile?.display_name || "Sem Nome"}
+                </h2>
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="text-gray-400 hover:text-black transition-colors"
+                >
+                  <Edit3 size={16} />
+                </button>
+              </div>
+            )}
+            <p className="text-sm font-medium text-gray-400">Dono da Galeria</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+import { Edit3 } from 'lucide-react';
