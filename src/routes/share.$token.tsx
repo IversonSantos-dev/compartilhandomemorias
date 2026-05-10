@@ -56,10 +56,6 @@ function PublicUpload() {
           
           setOwnerInfo(profileData);
         }
-        } else {
-          setIsValid(true);
-          setOwnerInfo(data.owner);
-        }
       } catch (err) {
         setIsValid(false);
       } finally {
