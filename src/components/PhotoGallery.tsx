@@ -86,7 +86,7 @@ export const PhotoGallery: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div key={i} className="aspect-[4/5] animate-pulse rounded-3xl bg-gray-200" />
         ))}
@@ -95,7 +95,7 @@ export const PhotoGallery: React.FC = () => {
   }
 
   return (
-    <div className="columns-1 gap-6 space-y-6 sm:columns-2 lg:columns-3">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       <AnimatePresence>
         {photos.map((photo, index) => (
           <motion.div
@@ -113,32 +113,61 @@ export const PhotoGallery: React.FC = () => {
               ease: "easeOut"
             }}
             onClick={() => setSelectedMedia(photo)}
-            className={`group relative break-inside-avoid cursor-pointer overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
+            className={`group relative aspect-square cursor-pointer overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
           >
-            {photo.image_url.toLowerCase().endsWith('.mp4') ? (
-              <video
-                src={photo.image_url}
-                className="w-full"
-                autoPlay
-                muted
-                loop
-                playsInline
-              />
-            ) : (
-              <img
-                src={photo.image_url}
-                alt={photo.caption || "Shared moment"}
-                className="w-full object-cover"
-                loading="lazy"
-              />
-            )}
+            <div className="absolute inset-0">
+              {photo.image_url.toLowerCase().endsWith('.mp4') ? (
+                <video
+                  src={photo.image_url}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={photo.image_url}
+                  alt={photo.caption || "Shared moment"}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  loading="lazy"
+                />
+              )}
+            </div>
             
+            <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+              {photo.caption && (
+                <p className="mb-1 text-xs font-bold text-white line-clamp-2">{photo.caption}</p>
+              )}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <User size={10} className="text-white/70" />
+                  <span className="truncate text-[10px] font-black uppercase tracking-tighter text-white">
+                    {photo.guest_name || 'Usuário'}
+                  </span>
+                </div>
+                <span className="shrink-0 text-[10px] font-medium text-white/60">
+                  {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 backdrop-blur-md group-hover:hidden">
+              <Clock size={10} className="text-white/80" />
+              <span className="text-[9px] font-bold text-white uppercase tracking-tighter">
+                {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+
             {/* Owner Actions - Glassmorphism */}
             {currentUserId === photo.user_id && (
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 z-20">
                 <div className="flex gap-1 rounded-full bg-white/20 p-1 backdrop-blur-md ring-1 ring-white/30">
                   <button 
-                    onClick={() => deletePhoto(photo)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePhoto(photo);
+                    }}
                     className="rounded-full p-2 text-white transition-colors hover:bg-red-500/50"
                   >
                     <Trash2 size={18} />
@@ -146,33 +175,6 @@ export const PhotoGallery: React.FC = () => {
                 </div>
               </div>
             )}
-
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  {photo.caption && (
-                    <p className="text-sm font-medium text-gray-800">{photo.caption}</p>
-                  )}
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-gray-300">
-                    {new Date(photo.created_at).toLocaleDateString('pt-BR', {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-                {index === 0 && (
-                  <motion.span 
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="rounded-full bg-black px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-white"
-                  >
-                    Novo
-                  </motion.span>
-                )}
-              </div>
-            </div>
           </motion.div>
         ))}
       </AnimatePresence>
