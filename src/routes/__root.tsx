@@ -72,12 +72,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1" },
-      { title: "Shared Memory Canvas" },
+      { title: "Compartilhando Memórias" },
       { name: "description", content: "Capture and share moments instantly." },
       { name: "theme-color", content: "#F9F9F9" },
-      { property: "og:title", content: "Shared Memory Canvas" },
+      { property: "og:title", content: "Compartilhando Memórias" },
       { property: "og:description", content: "Capture and share moments instantly." },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "Compartilhando Memórias" },
+      { name: "twitter:description", content: "Capture and share moments instantly." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d4cfc837-3f22-4e7e-9e8c-a97cdfdfd6a3/id-preview-492575af--537a3b9a-0281-4b90-8b40-745bb9cab1c2.lovable.app-1778433772664.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d4cfc837-3f22-4e7e-9e8c-a97cdfdfd6a3/id-preview-492575af--537a3b9a-0281-4b90-8b40-745bb9cab1c2.lovable.app-1778433772664.png" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       {
