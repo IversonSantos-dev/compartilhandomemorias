@@ -110,7 +110,34 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             />
           </div>
           
-          <div className="flex items-center justify-between gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-white/50">Proporção</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: '1:1', value: 1 },
+                { label: '4:5', value: 4/5 },
+                { label: '16:9', value: 16/9 },
+                { label: 'Livre', value: undefined }
+              ].map((ratio) => (
+                <button
+                  key={ratio.label}
+                  onClick={() => {
+                    // We need a local state to handle dynamic aspect changes
+                    // or pass a setter from props. Let's add local state.
+                    setCurrentAspect(ratio.value);
+                  }}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                    currentAspect === ratio.value 
+                      ? 'bg-white text-black' 
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  {ratio.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
             <button
               onClick={onCancel}
               className="flex items-center gap-2 rounded-full bg-white/10 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-white/20"
