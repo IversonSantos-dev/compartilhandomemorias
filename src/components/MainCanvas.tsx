@@ -230,14 +230,16 @@ export const MainCanvas: React.FC = () => {
 
         {/* Dashboard (When logged in) */}
         {session && (
-          <section className="space-y-16">
+          <section className="space-y-12">
+            <UserProfileSettings userId={session.user.id} />
+
             <div className="flex flex-col items-center justify-center text-center">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
               >
                 <h2 className="text-4xl font-black tracking-tight text-black sm:text-5xl">
-                  Sua Galeria <span className="text-gray-400 italic">Privada</span>
+                  Seu <span className="text-gray-400 italic">Espaço</span>
                 </h2>
                 <p className="mt-4 text-gray-500 font-medium">
                   Capture novos momentos ou gerencie suas memórias compartilhadas.
