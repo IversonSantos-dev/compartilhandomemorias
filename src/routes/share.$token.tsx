@@ -404,6 +404,7 @@ function PublicUpload() {
       <CameraCapture 
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
+        shareToken={token}
         onCapture={(url) => {
           confetti({
             particleCount: 150,
