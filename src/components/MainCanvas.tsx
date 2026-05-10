@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LogIn, LogOut, User, Camera, Upload as UploadIcon, Image as ImageIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CameraCapture } from './CameraCapture';
 import { PhotoGallery } from './PhotoGallery';
 import { AuthModal } from './AuthModal';
@@ -13,6 +13,7 @@ export const MainCanvas: React.FC = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -40,13 +41,29 @@ export const MainCanvas: React.FC = () => {
     if (!file || !session?.user) return;
 
     setIsUploading(true);
+    setUploadProgress(10);
     try {
       const fileName = `${session.user.id}/${Date.now()}-${file.name}`;
+      
+      // Simular progresso inicial
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 300);
+
       const { data, error: uploadError } = await supabase.storage
         .from('photos')
         .upload(fileName, file);
 
+      clearInterval(progressInterval);
       if (uploadError) throw uploadError;
+      
+      setUploadProgress(95);
 
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
@@ -62,6 +79,7 @@ export const MainCanvas: React.FC = () => {
 
       if (dbError) throw dbError;
 
+      setUploadProgress(100);
       toast.success("Foto enviada com sucesso!");
       confetti({
         particleCount: 100,
@@ -69,10 +87,16 @@ export const MainCanvas: React.FC = () => {
         origin: { y: 0.6 },
         colors: ['#000000', '#FFFFFF', '#F9F9F9']
       });
+      
+      // Resetar após um pequeno delay para a animação completar
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
     } catch (err: any) {
       toast.error("Erro no upload: " + err.message);
-    } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -148,30 +172,57 @@ export const MainCanvas: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mt-10 flex flex-wrap justify-center gap-4"
+            className="mt-10 flex flex-col items-center gap-6"
           >
             {session ? (
-              <>
-                <button
-                  onClick={() => setIsCameraOpen(true)}
-                  className="group flex items-center gap-3 rounded-2xl bg-black px-8 py-4 text-lg font-bold text-white transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-black/10 active:scale-95"
-                >
-                  <Camera className="transition-transform group-hover:rotate-12" size={24} />
-                  Capturar
-                </button>
-                
-                <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white px-8 py-4 text-lg font-bold text-black ring-1 ring-black/10 transition-all hover:bg-gray-50 hover:shadow-md active:scale-95">
-                  <UploadIcon className={isUploading ? "animate-bounce" : ""} size={24} />
-                  {isUploading ? "Enviando..." : "Upload"}
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    accept="image/*" 
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                  />
-                </label>
-              </>
+              <div className="flex flex-col items-center gap-6 w-full max-w-md">
+                <div className="flex flex-wrap justify-center gap-4">
+                  <button
+                    onClick={() => setIsCameraOpen(true)}
+                    className="group flex items-center gap-3 rounded-2xl bg-black px-8 py-4 text-lg font-bold text-white transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-black/10 active:scale-95"
+                  >
+                    <Camera className="transition-transform group-hover:rotate-12" size={24} />
+                    Capturar
+                  </button>
+                  
+                  <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white px-8 py-4 text-lg font-bold text-black ring-1 ring-black/10 transition-all hover:bg-gray-50 hover:shadow-md active:scale-95">
+                    <UploadIcon className={isUploading ? "animate-bounce" : ""} size={24} />
+                    Upload
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                  </label>
+                </div>
+
+                {/* Barra de Progresso de Upload */}
+                <AnimatePresence>
+                  {isUploading && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="w-full space-y-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5"
+                    >
+                      <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-gray-500">
+                        <span>Enviando momento...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                        <motion.div 
+                          className="h-full bg-black"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${uploadProgress}%` }}
+                          transition={{ type: "spring", stiffness: 50, damping: 20 }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
               <p className="rounded-2xl bg-white px-8 py-4 text-sm font-semibold text-gray-500 ring-1 ring-black/5">
                 Faça login para adicionar seus próprios momentos.
