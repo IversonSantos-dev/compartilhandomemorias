@@ -159,6 +159,7 @@ function PublicUpload() {
       setTimeout(() => {
         setIsUploading(false);
         setUploadProgress(0);
+        window.location.reload();
       }, 1000);
     } catch (err: any) {
       toast.error("Erro no upload: " + err.message);

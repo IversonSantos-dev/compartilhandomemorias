@@ -113,6 +113,9 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
 
       toast.success(previewType === 'image' ? "Foto enviada!" : "Vídeo enviado!");
       onCapture(publicUrl);
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
       handleClose();
     } catch (err: any) {
       toast.error("Erro ao salvar: " + err.message);
