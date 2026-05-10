@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { Camera, X, Upload, Check, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Camera, X, Upload, Check, Loader2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,18 +8,25 @@ interface CameraCaptureProps {
   onCapture: (url: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  shareToken?: string;
 }
 
-export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen, onClose }) => {
+export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen, onClose, shareToken }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const startCamera = useCallback(async () => {
+    // Parar stream anterior se existir
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' },
+        video: { facingMode: facingMode },
         audio: false 
       });
       setStream(mediaStream);
@@ -28,26 +35,24 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
-      toast.error("Permissão de câmera negada ou câmera não encontrada.");
-      onClose();
+      toast.error("Erro ao acessar a câmera. Verifique as permissões.");
     }
-  }, [onClose]);
+  }, [facingMode]);
 
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  }, [stream]);
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       startCamera();
-    } else {
-      stopCamera();
     }
-    return () => stopCamera();
-  }, [isOpen, startCamera, stopCamera]);
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [isOpen, facingMode]); // Reinicia quando o modo de câmera muda
+
+  const toggleCamera = () => {
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+  };
 
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
