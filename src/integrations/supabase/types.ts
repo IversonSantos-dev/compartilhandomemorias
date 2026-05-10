@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string
+          share_token: string | null
           updated_at: string
           user_id: string
         }
@@ -28,6 +29,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url: string
+          share_token?: string | null
           updated_at?: string
           user_id: string
         }
@@ -36,8 +38,33 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string
+          share_token?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shared_links: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          owner_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          owner_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          owner_id?: string
+          token?: string
         }
         Relationships: []
       }
