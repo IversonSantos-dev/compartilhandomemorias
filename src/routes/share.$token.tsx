@@ -26,6 +26,8 @@ function PublicUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [ownerInfo, setOwnerInfo] = useState<any>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(true);
 
   useEffect(() => {
     const validateToken = async () => {
