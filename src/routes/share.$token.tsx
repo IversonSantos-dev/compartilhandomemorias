@@ -1,11 +1,18 @@
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon } from 'lucide-react';
+import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast, Toaster } from 'sonner';
 import confetti from 'canvas-confetti';
 import { CameraCapture } from '@/components/CameraCapture';
+
+interface Photo {
+  id: string;
+  image_url: string;
+  created_at: string;
+  caption: string | null;
+}
 
 export const Route = createFileRoute("/share/$token")({
   component: PublicUpload,
@@ -19,6 +26,8 @@ function PublicUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [ownerInfo, setOwnerInfo] = useState<any>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(true);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -44,6 +53,47 @@ function PublicUpload() {
     };
     validateToken();
   }, [token]);
+
+  const fetchSharedPhotos = async () => {
+    if (!token) return;
+    try {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .eq('share_token', token)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPhotos(data || []);
+    } catch (err) {
+      console.error("Error fetching shared photos:", err);
+    } finally {
+      setLoadingPhotos(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isValid) {
+      fetchSharedPhotos();
+
+      // Real-time updates for the shared gallery
+      const channel = supabase
+        .channel(`public-photos-${token}`)
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'photos',
+          filter: `share_token=eq.${token}` 
+        }, () => {
+          fetchSharedPhotos();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [isValid, token]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -201,6 +251,52 @@ function PublicUpload() {
           </AnimatePresence>
         </div>
 
+        {/* Shared Gallery Section */}
+        <section className="mt-20">
+          <div className="mb-8 flex items-center justify-center gap-3">
+            <ImageIcon className="text-black" size={24} />
+            <h3 className="text-xl font-black tracking-tight">Memórias dos Convidados</h3>
+          </div>
+
+          {loadingPhotos ? (
+            <div className="grid grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="aspect-square animate-pulse rounded-3xl bg-gray-200" />
+              ))}
+            </div>
+          ) : photos.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4">
+              <AnimatePresence>
+                {photos.map((photo, index) => (
+                  <motion.div
+                    key={photo.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="relative aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
+                  >
+                    <img
+                      src={photo.image_url}
+                      alt="Shared moment"
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-black/20 p-2 backdrop-blur-md">
+                      <Clock size={12} className="text-white/80" />
+                      <span className="text-[10px] font-bold text-white uppercase tracking-tighter">
+                        {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <div className="rounded-3xl border-2 border-dashed border-gray-200 py-12 text-center">
+              <p className="text-sm font-medium text-gray-400">Nenhuma foto ainda. Seja o primeiro!</p>
+            </div>
+          )}
+        </section>
+
         <div className="mt-16 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
           <div className="flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400">
             <CheckCircle2 size={16} />
@@ -222,8 +318,9 @@ function PublicUpload() {
             spread: 90,
             origin: { y: 0.6 }
           });
+          // A atualização da galeria já é tratada pelo canal em tempo real
         }}
       />
     </div>
   );
-};
+}
