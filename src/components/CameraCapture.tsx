@@ -307,13 +307,43 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
                     disabled={isUploading}
                     className="group relative flex h-24 w-24 items-center justify-center rounded-full border-4 border-gray-100 p-1 transition-all hover:border-black/5 active:scale-90 disabled:opacity-50"
                   >
-                    <div className={`h-full w-full rounded-full ${isRecording ? 'bg-red-500 scale-90' : 'bg-black'} group-hover:bg-gray-800 transition-all flex items-center justify-center shadow-xl`}>
-                      {isRecording ? (
-                        <div className="h-8 w-8 rounded-sm bg-white" />
-                      ) : (
-                        <Camera className="text-white" size={36} />
-                      )}
-                    </div>
+                <div className={`h-full w-full rounded-full ${isRecording ? 'bg-red-500 scale-90' : 'bg-black'} group-hover:bg-gray-800 transition-all flex items-center justify-center shadow-xl`}>
+                  <AnimatePresence mode="wait">
+                    {isRecording ? (
+                      <motion.div 
+                        key="stop"
+                        initial={{ scale: 0, borderRadius: "2px" }}
+                        animate={{ scale: 1, borderRadius: "4px" }}
+                        exit={{ scale: 0 }}
+                        className="h-8 w-8 bg-white" 
+                      />
+                    ) : (
+                      <motion.div
+                        key="camera"
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                        className="flex flex-col items-center justify-center"
+                      >
+                        <Camera className="text-white" size={32} />
+                        <motion.div 
+                          animate={{ 
+                            opacity: [0.4, 1, 0.4],
+                            scale: [0.95, 1.05, 0.95]
+                          }}
+                          transition={{ 
+                            duration: 2, 
+                            repeat: Infinity,
+                            ease: "easeInOut" 
+                          }}
+                          className="mt-1 flex items-center gap-1"
+                        >
+                          <div className="h-1 w-1 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
+                          <span className="text-[7px] font-black tracking-widest text-white/60">HOLD</span>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
                     
                     {!isRecording && !isUploading && (
                       <svg className="absolute inset-0 h-full w-full -rotate-90">
