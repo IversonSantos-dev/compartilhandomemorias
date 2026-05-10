@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Share2, QrCode, Copy, Check, Loader2, X, Plus } from 'lucide-react';
+import { Share2, QrCode, Copy, Check, Loader2, X, Plus, FolderEdit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -9,7 +9,10 @@ export const ShareGallery: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+  const [folderName, setFolderName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [tokenId, setTokenId] = useState<string | null>(null);
 
   const fetchLink = async () => {
     setLoading(true);
@@ -70,6 +73,22 @@ export const ShareGallery: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const updateFolderName = async () => {
+    if (!tokenId) return;
+    try {
+      const { error } = await supabase
+        .from('shared_links')
+        .update({ name: folderName })
+        .eq('token', tokenId);
+
+      if (error) throw error;
+      toast.success("Nome da pasta atualizado!");
+      setIsEditingName(false);
+    } catch (err: any) {
+      toast.error("Erro ao atualizar: " + err.message);
+    }
+  };
+
   return (
     <>
       <button
@@ -122,6 +141,42 @@ export const ShareGallery: React.FC = () => {
                 </div>
               ) : link ? (
                 <div className="space-y-6">
+                  {/* Nome da Pasta */}
+                  <div className="rounded-2xl bg-gray-50 p-4 ring-1 ring-black/5">
+                    <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Nome da Pasta Compartilhada
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {isEditingName ? (
+                        <div className="flex flex-1 items-center gap-1">
+                          <input
+                            type="text"
+                            value={folderName}
+                            onChange={(e) => setFolderName(e.target.value)}
+                            className="flex-1 bg-transparent text-sm font-bold text-black outline-none"
+                            placeholder="Ex: Casamento 2024"
+                            autoFocus
+                          />
+                          <button onClick={updateFolderName} className="text-black">
+                            <Check size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-1 items-center justify-between">
+                          <span className="text-sm font-bold text-black">
+                            {folderName || "Sem nome definido"}
+                          </span>
+                          <button 
+                            onClick={() => setIsEditingName(true)}
+                            className="text-gray-400 hover:text-black"
+                          >
+                            <FolderEdit size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex justify-center rounded-3xl bg-gray-50 p-6 ring-1 ring-black/5">
                     <QRCodeSVG value={link} size={180} />
                   </div>
