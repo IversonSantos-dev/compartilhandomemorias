@@ -102,7 +102,7 @@ function PublicUpload() {
       setIsUploading(false);
       setUploadProgress(0);
     }
-}
+  };
 
   if (loading) {
     return (
