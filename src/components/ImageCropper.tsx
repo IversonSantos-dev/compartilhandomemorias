@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { X, Check, Loader2 } from 'lucide-react';
 
 interface ImageCropperProps {
@@ -18,6 +18,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
 }) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [currentAspect, setCurrentAspect] = useState<number | undefined>(aspect);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -86,7 +87,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           image={image}
           crop={crop}
           zoom={zoom}
-          aspect={aspect}
+          aspect={currentAspect}
           onCropChange={onCropChange}
           onCropComplete={onCropCompleteInternal}
           onZoomChange={onZoomChange}
@@ -110,6 +111,30 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             />
           </div>
           
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-white/50">Proporção</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: '1:1', value: 1 },
+                { label: '4:5', value: 4/5 },
+                { label: '16:9', value: 16/9 },
+                { label: 'Livre', value: undefined }
+              ].map((ratio) => (
+                <button
+                  key={ratio.label}
+                  onClick={() => setCurrentAspect(ratio.value)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                    currentAspect === ratio.value 
+                      ? 'bg-white text-black' 
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  {ratio.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
           <div className="flex items-center justify-between gap-4">
             <button
               onClick={onCancel}
@@ -129,7 +154,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
               ) : (
                 <>
                   <Check size={18} />
-                  Confirmar Recorte
+                  Confirmar
                 </>
               )}
             </button>
