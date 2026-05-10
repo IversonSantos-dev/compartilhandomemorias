@@ -94,6 +94,7 @@ export const MainCanvas: React.FC = () => {
         setTimeout(() => {
           setUploadQueue(prev => prev.filter(i => i.id !== item.id));
           URL.revokeObjectURL(item.preview);
+          window.location.reload();
         }, 2000);
 
       } catch (err: any) {
