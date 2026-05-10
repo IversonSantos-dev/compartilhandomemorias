@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Upload, User, Layout, Save, X, Loader2 } from 'lucide-react';
+import { Camera, Upload, User, Layout, Save, X, Loader2, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ImageCropper } from './ImageCropper';
 
 interface Profile {
   id: string;
@@ -26,6 +27,8 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
 
   const [isAdjustingFocus, setIsAdjustingFocus] = useState(false);
   const [tempFocus, setTempFocus] = useState({ x: 50, y: 50 });
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropType, setCropType] = useState<'avatar' | 'banner'>('banner');
 
   useEffect(() => {
     fetchProfile();
@@ -102,9 +105,23 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImage(reader.result as string);
+      setCropType(type);
+    };
+    reader.readAsDataURL(file);
+    // Reset input
+    e.target.value = '';
+  };
+
+  const onCropComplete = async (croppedBlob: Blob) => {
+    setCropImage(null);
     setSaving(true);
     try {
-      const fileName = `${userId}/${type}-${Date.now()}-${file.name}`;
+      const fileName = `${userId}/${cropType}-${Date.now()}.jpg`;
+      const file = new File([croppedBlob], fileName, { type: 'image/jpeg' });
+
       const { error: uploadError } = await supabase.storage
         .from('photos')
         .upload(fileName, file);
@@ -115,7 +132,7 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
         .from('photos')
         .getPublicUrl(fileName);
 
-      const updateData = type === 'avatar' ? { avatar_url: publicUrl } : { banner_url: publicUrl };
+      const updateData = cropType === 'avatar' ? { avatar_url: publicUrl } : { banner_url: publicUrl };
       
       const { error: dbError } = await supabase
         .from('profiles')
@@ -124,7 +141,7 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
 
       if (dbError) throw dbError;
 
-      toast.success(`${type === 'avatar' ? 'Foto de perfil' : 'Banner'} atualizado!`);
+      toast.success(`${cropType === 'avatar' ? 'Foto de perfil' : 'Banner'} atualizado!`);
       fetchProfile();
       onUpdate?.();
     } catch (err: any) {
@@ -205,8 +222,8 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
             ) : (
               <>
                 <label className="flex cursor-pointer flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors">
-                  <Upload size={24} />
-                  <span className="text-sm font-bold">Alterar Capa</span>
+                  <Scissors size={24} />
+                  <span className="text-sm font-bold">Recortar Capa</span>
                   <input 
                     type="file" 
                     className="hidden" 
@@ -223,16 +240,25 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
                     }}
                     className="flex flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors"
                   >
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current">
-                      <div className="h-1 w-1 rounded-full bg-current" />
-                    </div>
+                    <Layout size={24} />
                     <span className="text-sm font-bold">Ajustar Foco</span>
                   </button>
                 )}
               </>
             )}
           </div>
-        </div>
+
+      <AnimatePresence>
+        {cropImage && (
+          <ImageCropper
+            image={cropImage}
+            aspect={cropType === 'avatar' ? 1 : 16 / 9}
+            onCropComplete={onCropComplete}
+            onCancel={() => setCropImage(null)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
 
         <div className="relative -mt-12 ml-8 flex items-end gap-6 pb-6">
           <div className="group relative h-24 w-24 overflow-hidden rounded-3xl bg-white ring-4 ring-white shadow-xl">
@@ -244,7 +270,7 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
               </div>
             )}
             <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-              <Camera size={20} className="text-white" />
+              <Scissors size={20} className="text-white" />
               <input 
                 type="file" 
                 className="hidden" 
