@@ -248,8 +248,19 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
                 )}
               </>
             )}
-          </div>
-        </div>
+      </div>
+
+      <AnimatePresence>
+        {cropImage && (
+          <ImageCropper
+            image={cropImage}
+            aspect={cropType === 'avatar' ? 1 : 16 / 9}
+            onCropComplete={onCropComplete}
+            onCancel={() => setCropImage(null)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
 
         <div className="relative -mt-12 ml-8 flex items-end gap-6 pb-6">
           <div className="group relative h-24 w-24 overflow-hidden rounded-3xl bg-white ring-4 ring-white shadow-xl">
