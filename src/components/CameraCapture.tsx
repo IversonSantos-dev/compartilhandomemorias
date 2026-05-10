@@ -142,18 +142,28 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
             exit={{ scale: 0.9, y: 20 }}
             className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
           >
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 z-10 rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40"
-            >
-              <X size={20} />
-            </button>
+            <div className="absolute top-4 right-4 z-10 flex gap-2">
+              <button
+                onClick={toggleCamera}
+                className="rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 backdrop-blur-md"
+                title="Trocar Câmera"
+              >
+                <RefreshCw size={20} />
+              </button>
+              <button
+                onClick={onClose}
+                className="rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 backdrop-blur-md"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             <div className="relative aspect-[3/4] w-full bg-black">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className="h-full w-full object-cover"
               />
               <canvas ref={canvasRef} className="hidden" />
@@ -166,13 +176,16 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
               )}
             </div>
 
-            <div className="flex items-center justify-center p-8">
+            <div className="flex items-center justify-center p-8 bg-white">
               <button
-                onClick={capturePhoto}
+                onClick={(e) => {
+                  e.preventDefault();
+                  capturePhoto();
+                }}
                 disabled={isUploading}
-                className="group relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-gray-200 p-1 transition-all active:scale-95 disabled:opacity-50"
+                className="group relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-gray-100 p-1 transition-all hover:border-black/5 active:scale-95 disabled:opacity-50"
               >
-                <div className="h-full w-full rounded-full bg-black group-hover:scale-110 transition-transform flex items-center justify-center">
+                <div className="h-full w-full rounded-full bg-black group-hover:bg-gray-800 transition-all flex items-center justify-center shadow-xl">
                   <Camera className="text-white" size={32} />
                 </div>
               </button>
