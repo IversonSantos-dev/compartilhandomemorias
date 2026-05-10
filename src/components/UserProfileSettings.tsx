@@ -27,6 +27,8 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
 
   const [isAdjustingFocus, setIsAdjustingFocus] = useState(false);
   const [tempFocus, setTempFocus] = useState({ x: 50, y: 50 });
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropType, setCropType] = useState<'avatar' | 'banner'>('banner');
 
   useEffect(() => {
     fetchProfile();
