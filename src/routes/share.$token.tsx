@@ -1,5 +1,5 @@
+import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from '@tanstack/react-router';
 import { supabase } from '@/integrations/supabase/client';
 import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +7,11 @@ import { toast, Toaster } from 'sonner';
 import confetti from 'canvas-confetti';
 import { CameraCapture } from '@/components/CameraCapture';
 
-export const PublicUpload: React.FC = () => {
+export const Route = createFileRoute("/share/$token")({
+  component: PublicUpload,
+});
+
+function PublicUpload() {
   const { token } = useParams({ from: '/share/$token' });
   const [loading, setLoading] = useState(true);
   const [isValid, setIsValid] = useState(false);
