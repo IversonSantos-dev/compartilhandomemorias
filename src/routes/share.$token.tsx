@@ -251,8 +251,6 @@ function PublicUpload() {
           </AnimatePresence>
         </div>
 
-        </div>
-
         {/* Shared Gallery Section */}
         <section className="mt-20">
           <div className="mb-8 flex items-center justify-center gap-3">
