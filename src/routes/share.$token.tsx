@@ -57,7 +57,7 @@ function PublicUpload() {
             .eq('id', linkData.owner_id)
             .maybeSingle();
           
-          setOwnerInfo(profileData);
+          setOwnerProfile(profileData);
         }
       } catch (err) {
         setIsValid(false);
