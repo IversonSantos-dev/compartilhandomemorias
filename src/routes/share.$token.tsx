@@ -32,6 +32,7 @@ function PublicUpload() {
   const [filter, setFilter] = useState<'all' | 'today' | 'week'>('all');
   const [guestNameInput, setGuestNameInput] = useState('');
   const [captionInput, setCaptionInput] = useState('');
+  const [selectedMedia, setSelectedMedia] = useState<Photo | null>(null);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -355,7 +356,8 @@ function PublicUpload() {
                     key={photo.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="group relative aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
+                    onClick={() => setSelectedMedia(photo)}
+                    className="group relative aspect-square cursor-pointer overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
                   >
                     {photo.image_url.toLowerCase().endsWith('.mp4') ? (
                       <video
@@ -432,6 +434,72 @@ function PublicUpload() {
           // A atualização da galeria já é tratada pelo canal em tempo real
         }}
       />
+
+      {/* Media Modal - View full image/video */}
+      <AnimatePresence>
+        {selectedMedia && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-xl"
+            onClick={() => setSelectedMedia(null)}
+          >
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute right-6 top-6 z-10 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
+              onClick={() => setSelectedMedia(null)}
+            >
+              <CloseIcon size={24} />
+            </motion.button>
+
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="relative max-h-[90vh] max-w-4xl overflow-hidden rounded-3xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {selectedMedia.image_url.toLowerCase().endsWith('.mp4') ? (
+                <video
+                  src={selectedMedia.image_url}
+                  className="max-h-[70vh] w-full object-contain"
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={selectedMedia.image_url}
+                  alt="Full moment"
+                  className="max-h-[70vh] w-full object-contain"
+                />
+              )}
+
+              <div className="bg-black/40 p-6 backdrop-blur-md">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    {selectedMedia.caption && (
+                      <p className="text-lg font-bold text-white">{selectedMedia.caption}</p>
+                    )}
+                    <div className="mt-2 flex items-center gap-2">
+                      <UserIcon size={14} className="text-gray-400" />
+                      <span className="text-sm font-black uppercase tracking-tighter text-gray-300">
+                        {selectedMedia.guest_name || 'Convidado'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                    <Clock size={12} />
+                    <span>{new Date(selectedMedia.created_at).toLocaleString('pt-BR')}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

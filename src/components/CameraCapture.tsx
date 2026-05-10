@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, X, Upload, Check, Loader2, RefreshCw, Circle } from 'lucide-react';
+import { Camera, X, Upload, Check, Loader2, RefreshCw, Circle, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,14 +16,18 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewType, setPreviewType] = useState<'image' | 'video' | null>(null);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const startCamera = useCallback(async () => {
-    // Parar stream anterior se existir
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
     }
@@ -41,10 +45,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       console.error("Error accessing camera:", err);
       toast.error("Erro ao acessar a câmera. Verifique as permissões.");
     }
-  }, [facingMode, stream]);
+  }, [facingMode]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !previewUrl) {
       startCamera();
     }
     return () => {
@@ -52,13 +56,15 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [isOpen, facingMode]); // Reinicia quando o modo de câmera muda
+  }, [isOpen, facingMode, previewUrl]);
 
   const toggleCamera = () => {
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
   };
 
-  const uploadMedia = async (blob: Blob, type: 'image' | 'video' = 'image') => {
+  const uploadMedia = async () => {
+    if (!previewBlob || !previewType) return;
+    
     setIsUploading(true);
     try {
       let userId: string | null = null;
@@ -78,13 +84,13 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
         userId = user.id;
       }
 
-      const ext = type === 'image' ? 'jpg' : 'mp4';
+      const ext = previewType === 'image' ? 'jpg' : 'mp4';
       const fileName = `${shareToken ? 'public/' + shareToken : userId}/${Date.now()}.${ext}`;
       
       const { data, error: uploadError } = await supabase.storage
         .from('photos')
-        .upload(fileName, blob, {
-          contentType: type === 'image' ? 'image/jpeg' : 'video/mp4'
+        .upload(fileName, previewBlob, {
+          contentType: previewType === 'image' ? 'image/jpeg' : 'video/mp4'
         });
 
       if (uploadError) throw uploadError;
@@ -98,21 +104,39 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
         .insert({
           user_id: userId,
           image_url: publicUrl,
-          caption: shareToken ? `Captura Pública (${type === 'image' ? 'Foto' : 'Vídeo'})` : `Captura Direta (${type === 'image' ? 'Foto' : 'Vídeo'})`,
+          caption: shareToken ? `Captura Pública (${previewType === 'image' ? 'Foto' : 'Vídeo'})` : `Captura Direta (${previewType === 'image' ? 'Foto' : 'Vídeo'})`,
           share_token: shareToken || null,
           guest_name: shareToken ? "Convidado (Câmera)" : null
         });
 
       if (dbError) throw dbError;
 
-      toast.success(type === 'image' ? "Foto capturada!" : "Vídeo capturado!");
+      toast.success(previewType === 'image' ? "Foto enviada!" : "Vídeo enviado!");
       onCapture(publicUrl);
-      onClose();
+      handleClose();
     } catch (err: any) {
       toast.error("Erro ao salvar: " + err.message);
-    } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleClose = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewBlob(null);
+    setPreviewType(null);
+    onClose();
+  };
+
+  const discardPreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewBlob(null);
+    setPreviewType(null);
   };
 
   const capturePhoto = async () => {
@@ -129,7 +153,14 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
     
     canvas.toBlob(async (blob) => {
       if (!blob) return;
-      await uploadMedia(blob, 'image');
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewBlob(blob);
+      setPreviewType('image');
+      
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
     }, 'image/jpeg', 0.8);
   };
 
@@ -148,7 +179,14 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
     
     mediaRecorder.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
-      await uploadMedia(blob, 'video');
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewBlob(blob);
+      setPreviewType('video');
+      
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
     };
     
     mediaRecorder.start();
@@ -164,12 +202,14 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
   };
 
   const handlePointerDown = () => {
+    if (previewUrl) return;
     pressTimerRef.current = setTimeout(() => {
       startRecording();
     }, 500);
   };
 
   const handlePointerUp = () => {
+    if (previewUrl) return;
     if (pressTimerRef.current) {
       clearTimeout(pressTimerRef.current);
       pressTimerRef.current = null;
@@ -198,15 +238,17 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
             className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
           >
             <div className="absolute top-4 right-4 z-10 flex gap-2">
+              {!previewUrl && (
+                <button
+                  onClick={toggleCamera}
+                  className="rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 backdrop-blur-md"
+                  title="Trocar Câmera"
+                >
+                  <RefreshCw size={20} />
+                </button>
+              )}
               <button
-                onClick={toggleCamera}
-                className="rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 backdrop-blur-md"
-                title="Trocar Câmera"
-              >
-                <RefreshCw size={20} />
-              </button>
-              <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 backdrop-blur-md"
               >
                 <X size={20} />
@@ -214,13 +256,30 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
             </div>
 
             <div className="relative aspect-[3/4] w-full bg-black">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="h-full w-full object-cover"
-              />
+              {!previewUrl ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full">
+                  {previewType === 'image' ? (
+                    <img src={previewUrl} className="h-full w-full object-cover" alt="Preview" />
+                  ) : (
+                    <video
+                      ref={previewVideoRef}
+                      src={previewUrl}
+                      autoPlay
+                      loop
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                </div>
+              )}
               <canvas ref={canvasRef} className="hidden" />
               
               {isUploading && (
@@ -232,46 +291,69 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
             </div>
 
             <div className="flex flex-col items-center justify-center p-8 bg-white gap-4">
-              {isRecording && (
-                <div className="flex items-center gap-2 text-red-500 font-bold animate-pulse">
-                  <Circle size={12} fill="currentColor" />
-                  <span>GRAVANDO...</span>
+              {!previewUrl ? (
+                <>
+                  {isRecording && (
+                    <div className="flex items-center gap-2 text-red-500 font-bold animate-pulse">
+                      <Circle size={12} fill="currentColor" />
+                      <span>GRAVANDO...</span>
+                    </div>
+                  )}
+                  
+                  <button
+                    onPointerDown={handlePointerDown}
+                    onPointerUp={handlePointerUp}
+                    onPointerLeave={handlePointerUp}
+                    disabled={isUploading}
+                    className="group relative flex h-24 w-24 items-center justify-center rounded-full border-4 border-gray-100 p-1 transition-all hover:border-black/5 active:scale-90 disabled:opacity-50"
+                  >
+                    <div className={`h-full w-full rounded-full ${isRecording ? 'bg-red-500 scale-90' : 'bg-black'} group-hover:bg-gray-800 transition-all flex items-center justify-center shadow-xl`}>
+                      {isRecording ? (
+                        <div className="h-8 w-8 rounded-sm bg-white" />
+                      ) : (
+                        <Camera className="text-white" size={36} />
+                      )}
+                    </div>
+                    
+                    {!isRecording && !isUploading && (
+                      <svg className="absolute inset-0 h-full w-full -rotate-90">
+                        <circle
+                          cx="48"
+                          cy="48"
+                          r="44"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className="text-gray-100"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                  
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    {isRecording ? "Solte para parar" : "Toque para foto • Segure para vídeo"}
+                  </p>
+                </>
+              ) : (
+                <div className="flex w-full gap-4">
+                  <button
+                    onClick={discardPreview}
+                    disabled={isUploading}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gray-100 py-4 text-sm font-bold text-black transition-all hover:bg-gray-200 active:scale-95 disabled:opacity-50"
+                  >
+                    <RotateCcw size={18} />
+                    <span>Tentar Novamente</span>
+                  </button>
+                  <button
+                    onClick={uploadMedia}
+                    disabled={isUploading}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-black py-4 text-sm font-bold text-white shadow-lg shadow-black/10 transition-all hover:bg-gray-800 active:scale-95 disabled:opacity-50"
+                  >
+                    <Upload size={18} />
+                    <span>Enviar Agora</span>
+                  </button>
                 </div>
               )}
-              
-              <button
-                onPointerDown={handlePointerDown}
-                onPointerUp={handlePointerUp}
-                onPointerLeave={handlePointerUp}
-                disabled={isUploading}
-                className="group relative flex h-24 w-24 items-center justify-center rounded-full border-4 border-gray-100 p-1 transition-all hover:border-black/5 active:scale-90 disabled:opacity-50"
-              >
-                <div className={`h-full w-full rounded-full ${isRecording ? 'bg-red-500 scale-90' : 'bg-black'} group-hover:bg-gray-800 transition-all flex items-center justify-center shadow-xl`}>
-                  {isRecording ? (
-                    <div className="h-8 w-8 rounded-sm bg-white" />
-                  ) : (
-                    <Camera className="text-white" size={36} />
-                  )}
-                </div>
-                
-                {!isRecording && !isUploading && (
-                  <svg className="absolute inset-0 h-full w-full -rotate-90">
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="44"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-gray-100"
-                    />
-                  </svg>
-                )}
-              </button>
-              
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                {isRecording ? "Solte para parar" : "Toque para foto • Segure para vídeo"}
-              </p>
             </div>
           </motion.div>
         </motion.div>

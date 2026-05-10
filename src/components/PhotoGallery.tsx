@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Edit3, Heart, Share2, MoreVertical, Loader2 } from 'lucide-react';
+import { Trash2, Edit3, Heart, Share2, MoreVertical, Loader2, X, User, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Photo {
@@ -10,12 +10,14 @@ interface Photo {
   caption: string | null;
   user_id: string;
   created_at: string;
+  guest_name?: string | null;
 }
 
 export const PhotoGallery: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<Photo | null>(null);
 
   useEffect(() => {
     fetchPhotos();
@@ -110,7 +112,8 @@ export const PhotoGallery: React.FC = () => {
               duration: 0.4,
               ease: "easeOut"
             }}
-            className={`group relative break-inside-avoid overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
+            onClick={() => setSelectedMedia(photo)}
+            className={`group relative break-inside-avoid cursor-pointer overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
           >
             {photo.image_url.toLowerCase().endsWith('.mp4') ? (
               <video
@@ -174,6 +177,72 @@ export const PhotoGallery: React.FC = () => {
         ))}
       </AnimatePresence>
       
+      {/* Media Modal - View full image/video */}
+      <AnimatePresence>
+        {selectedMedia && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-xl"
+            onClick={() => setSelectedMedia(null)}
+          >
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute right-6 top-6 z-10 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
+              onClick={() => setSelectedMedia(null)}
+            >
+              <X size={24} />
+            </motion.button>
+
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="relative max-h-[90vh] max-w-4xl overflow-hidden rounded-3xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {selectedMedia.image_url.toLowerCase().endsWith('.mp4') ? (
+                <video
+                  src={selectedMedia.image_url}
+                  className="max-h-[70vh] w-full object-contain"
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={selectedMedia.image_url}
+                  alt="Full moment"
+                  className="max-h-[70vh] w-full object-contain"
+                />
+              )}
+
+              <div className="bg-black/40 p-6 backdrop-blur-md">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    {selectedMedia.caption && (
+                      <p className="text-lg font-bold text-white">{selectedMedia.caption}</p>
+                    )}
+                    <div className="mt-2 flex items-center gap-2">
+                      <User size={14} className="text-gray-400" />
+                      <span className="text-sm font-black uppercase tracking-tighter text-gray-300">
+                        {selectedMedia.guest_name || 'Usuário'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                    <Clock size={12} />
+                    <span>{new Date(selectedMedia.created_at).toLocaleString('pt-BR')}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {photos.length === 0 && (
         <div className="col-span-full py-20 text-center">
           <p className="text-gray-400 font-medium italic">Nenhum momento compartilhado ainda.</p>
