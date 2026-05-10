@@ -4,12 +4,14 @@ import { LogIn, LogOut, User, Camera, Upload as UploadIcon, Image as ImageIcon }
 import { motion } from 'framer-motion';
 import { CameraCapture } from './CameraCapture';
 import { PhotoGallery } from './PhotoGallery';
+import { AuthModal } from './AuthModal';
 import { toast, Toaster } from 'sonner';
 import confetti from 'canvas-confetti';
 
 export const MainCanvas: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -24,22 +26,8 @@ export const MainCanvas: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogin = async () => {
-    const email = window.prompt("Digite seu email para o link mágico:");
-    if (!email) return;
-    
-    const { error } = await supabase.auth.signInWithOtp({ 
-      email,
-      options: {
-        emailRedirectTo: window.location.origin,
-      }
-    });
-    
-    if (error) {
-      toast.error("Erro: " + error.message);
-    } else {
-      toast.success("Link mágico enviado! Verifique seu email.");
-    }
+  const handleLogin = () => {
+    setIsAuthModalOpen(true);
   };
 
   const handleLogout = async () => {
@@ -205,6 +193,11 @@ export const MainCanvas: React.FC = () => {
       )}
 
       {/* Modals */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
+      
       <CameraCapture 
         isOpen={isCameraOpen} 
         onClose={() => setIsCameraOpen(false)}
