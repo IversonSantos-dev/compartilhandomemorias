@@ -11,9 +11,12 @@ interface Photo {
   user_id: string;
   created_at: string;
   guest_name?: string | null;
+  reactions?: Record<string, number> | any;
 }
 
 export const PhotoGallery: React.FC = () => {
+  type Reactions = Record<string, number>;
+
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -84,6 +87,30 @@ export const PhotoGallery: React.FC = () => {
     }
   };
 
+  const handleReaction = async (photoId: string, emoji: string) => {
+    try {
+      const photo = photos.find(p => p.id === photoId);
+      if (!photo) return;
+
+      const currentReactions = { ...(photo.reactions || {}) };
+      currentReactions[emoji] = (currentReactions[emoji] || 0) + 1;
+
+      const { error } = await supabase
+        .from('photos')
+        .update({ reactions: currentReactions })
+        .eq('id', photoId);
+
+      if (error) throw error;
+      
+      // Update local state for immediate feedback
+      setPhotos(prev => prev.map(p => 
+        p.id === photoId ? { ...p, reactions: currentReactions } : p
+      ));
+    } catch (err: any) {
+      console.error("Error reacting:", err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -146,10 +173,33 @@ export const PhotoGallery: React.FC = () => {
                     {photo.guest_name || 'Usuário'}
                   </span>
                 </div>
-                <span className="shrink-0 text-[10px] font-medium text-white/60">
-                  {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                </span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    {Object.entries(photo.reactions || {}).slice(0, 3).map(([emoji, count]) => (
+                      <span key={emoji} className="text-[10px] text-white/90">{emoji} {(count as number)}</span>
+                    ))}
+                  </div>
+                  <span className="shrink-0 text-[10px] font-medium text-white/60">
+                    {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
               </div>
+            </div>
+
+            {/* Reactions Overlay */}
+            <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 z-20">
+              {['❤️', '😊', '🎉'].map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReaction(photo.id, emoji);
+                  }}
+                  className="rounded-full bg-white/20 p-1.5 text-xs backdrop-blur-md ring-1 ring-white/30 transition-transform hover:scale-125 active:scale-90"
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
 
             <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 backdrop-blur-md group-hover:hidden">

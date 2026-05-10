@@ -21,6 +21,7 @@ export type Database = {
           guest_name: string | null
           id: string
           image_url: string
+          reactions: Json | null
           share_token: string | null
           updated_at: string
           user_id: string
@@ -31,6 +32,7 @@ export type Database = {
           guest_name?: string | null
           id?: string
           image_url: string
+          reactions?: Json | null
           share_token?: string | null
           updated_at?: string
           user_id: string
@@ -41,6 +43,7 @@ export type Database = {
           guest_name?: string | null
           id?: string
           image_url?: string
+          reactions?: Json | null
           share_token?: string | null
           updated_at?: string
           user_id?: string
@@ -50,6 +53,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          banner_focus_point: string | null
           banner_url: string | null
           created_at: string
           display_name: string | null
@@ -57,6 +61,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          banner_focus_point?: string | null
           banner_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -64,6 +69,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          banner_focus_point?: string | null
           banner_url?: string | null
           created_at?: string
           display_name?: string | null

@@ -9,6 +9,7 @@ interface Profile {
   display_name: string | null;
   avatar_url: string | null;
   banner_url: string | null;
+  banner_focus_point: string | null;
 }
 
 interface UserProfileProps {
@@ -69,6 +70,27 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
     }
   };
 
+  const handleUpdateFocusPoint = async (focusPoint: string) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          banner_focus_point: focusPoint,
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+      toast.success("Ponto focal atualizado!");
+      fetchProfile();
+      onUpdate?.();
+    } catch (err: any) {
+      toast.error("Erro ao atualizar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -113,24 +135,48 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
       <div className="relative overflow-hidden rounded-[2.5rem] bg-white ring-1 ring-black/5 shadow-sm">
         <div className="group relative h-48 w-full bg-gray-100">
           {profile?.banner_url ? (
-            <img src={profile.banner_url} alt="Banner" className="h-full w-full object-cover" />
+            <img 
+              src={profile.banner_url} 
+              alt="Banner" 
+              className="h-full w-full object-cover transition-all duration-300" 
+              style={{ objectPosition: profile.banner_focus_point || '50% 50%' }}
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-gray-300">
               <Layout size={40} />
             </div>
           )}
-          <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-            <div className="flex flex-col items-center gap-2 text-white">
+          
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 bg-black/40 gap-4">
+            <label className="flex cursor-pointer flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors">
               <Upload size={24} />
               <span className="text-sm font-bold">Alterar Capa</span>
-            </div>
-            <input 
-              type="file" 
-              className="hidden" 
-              accept="image/*" 
-              onChange={(e) => handleImageUpload(e, 'banner')}
-            />
-          </label>
+              <input 
+                type="file" 
+                className="hidden" 
+                accept="image/*" 
+                onChange={(e) => handleImageUpload(e, 'banner')}
+              />
+            </label>
+            
+            {profile?.banner_url && (
+              <button 
+                onClick={() => {
+                  const x = prompt("Ponto focal horizontal (0-100)%:", "50");
+                  const y = prompt("Ponto focal vertical (0-100)%:", "50");
+                  if (x !== null && y !== null) {
+                    handleUpdateFocusPoint(`${x}% ${y}%`);
+                  }
+                }}
+                className="flex flex-col items-center gap-2 text-white hover:text-gray-200 transition-colors"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current">
+                  <div className="h-1 w-1 rounded-full bg-current" />
+                </div>
+                <span className="text-sm font-bold">Ajustar Foco</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="relative -mt-12 ml-8 flex items-end gap-6 pb-6">

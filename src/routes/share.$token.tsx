@@ -13,6 +13,7 @@ interface Photo {
   created_at: string;
   caption: string | null;
   guest_name?: string | null;
+  reactions?: Record<string, number> | any;
 }
 
 export const Route = createFileRoute("/share/$token")({
@@ -86,6 +87,29 @@ function PublicUpload() {
     }
   };
 
+  const handleReaction = async (photoId: string, emoji: string) => {
+    try {
+      const photo = photos.find(p => p.id === photoId);
+      if (!photo) return;
+
+      const currentReactions = { ...(photo.reactions || {}) };
+      currentReactions[emoji] = (currentReactions[emoji] || 0) + 1;
+
+      const { error } = await supabase
+        .from('photos')
+        .update({ reactions: currentReactions })
+        .eq('id', photoId);
+
+      if (error) throw error;
+      
+      setPhotos(prev => prev.map(p => 
+        p.id === photoId ? { ...p, reactions: currentReactions } : p
+      ));
+    } catch (err: any) {
+      console.error("Error reacting:", err);
+    }
+  };
+
   useEffect(() => {
     if (isValid && linkData) {
       fetchSharedPhotos();
@@ -98,8 +122,18 @@ function PublicUpload() {
           schema: 'public', 
           table: 'photos',
           filter: `share_token=eq.${token},user_id=eq.${linkData.owner_id}` 
-        }, () => {
+        }, (payload) => {
           fetchSharedPhotos();
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'photos',
+          filter: `share_token=eq.${token}`
+        }, (payload) => {
+          setPhotos(prev => prev.map(p => 
+            p.id === payload.new.id ? { ...p, ...payload.new } : p
+          ));
         })
         .subscribe();
 
@@ -213,7 +247,12 @@ function PublicUpload() {
           {/* Banner */}
           <div className="h-48 w-full bg-gray-100">
             {ownerProfile?.banner_url ? (
-              <img src={ownerProfile.banner_url} alt="Banner" className="h-full w-full object-cover" />
+              <img 
+                src={ownerProfile.banner_url} 
+                alt="Banner" 
+                className="h-full w-full object-cover" 
+                style={{ objectPosition: ownerProfile.banner_focus_point || '50% 50%' }}
+              />
             ) : (
               <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100" />
             )}
@@ -420,10 +459,33 @@ function PublicUpload() {
                             {photo.guest_name || 'Convidado'}
                           </span>
                         </div>
-                        <span className="shrink-0 text-[10px] font-medium text-white/60">
-                          {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            {Object.entries(photo.reactions || {}).slice(0, 3).map(([emoji, count]) => (
+                              <span key={emoji} className="text-[10px] text-white/90">{emoji} {(count as number)}</span>
+                            ))}
+                          </div>
+                          <span className="shrink-0 text-[10px] font-medium text-white/60">
+                            {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Reactions Overlay */}
+                    <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 z-20">
+                      {['❤️', '😊', '🎉'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReaction(photo.id, emoji);
+                          }}
+                          className="rounded-full bg-white/20 p-1.5 text-xs backdrop-blur-md ring-1 ring-white/30 transition-transform hover:scale-125 active:scale-90"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
                     </div>
                     <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-lg bg-black/40 px-2 py-1 backdrop-blur-md group-hover:hidden">
                       <Clock size={10} className="text-white/80" />
