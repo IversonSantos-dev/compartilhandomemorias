@@ -15,7 +15,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,7 +41,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       console.error("Error accessing camera:", err);
       toast.error("Erro ao acessar a câmera. Verifique as permissões.");
     }
-  }, [facingMode]);
+  }, [facingMode, stream]);
 
   useEffect(() => {
     if (isOpen) {
@@ -59,6 +58,63 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
   };
 
+  const uploadMedia = async (blob: Blob, type: 'image' | 'video' = 'image') => {
+    setIsUploading(true);
+    try {
+      let userId: string | null = null;
+      
+      if (shareToken) {
+        const { data: linkData, error: linkError } = await supabase
+          .from('shared_links')
+          .select('owner_id')
+          .eq('token', shareToken)
+          .single();
+        
+        if (linkError || !linkData) throw new Error("Link compartilhado inválido.");
+        userId = linkData.owner_id;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Você precisa estar logado para capturar.");
+        userId = user.id;
+      }
+
+      const ext = type === 'image' ? 'jpg' : 'mp4';
+      const fileName = `${shareToken ? 'public/' + shareToken : userId}/${Date.now()}.${ext}`;
+      
+      const { data, error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(fileName, blob, {
+          contentType: type === 'image' ? 'image/jpeg' : 'video/mp4'
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('photos')
+        .getPublicUrl(fileName);
+
+      const { error: dbError } = await supabase
+        .from('photos')
+        .insert({
+          user_id: userId,
+          image_url: publicUrl,
+          caption: shareToken ? `Captura Pública (${type === 'image' ? 'Foto' : 'Vídeo'})` : `Captura Direta (${type === 'image' ? 'Foto' : 'Vídeo'})`,
+          share_token: shareToken || null,
+          guest_name: shareToken ? "Convidado (Câmera)" : null
+        });
+
+      if (dbError) throw dbError;
+
+      toast.success(type === 'image' ? "Foto capturada!" : "Vídeo capturado!");
+      onCapture(publicUrl);
+      onClose();
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -73,62 +129,56 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
     
     canvas.toBlob(async (blob) => {
       if (!blob) return;
-      await uploadPhoto(blob);
+      await uploadMedia(blob, 'image');
     }, 'image/jpeg', 0.8);
   };
 
-  const uploadPhoto = async (blob: Blob) => {
-    setIsUploading(true);
-    try {
-      let userId: string | null = null;
-      
-      if (shareToken) {
-        // Se houver shareToken, pegamos o owner_id do link
-        const { data: linkData, error: linkError } = await supabase
-          .from('shared_links')
-          .select('owner_id')
-          .eq('token', shareToken)
-          .single();
-        
-        if (linkError || !linkData) throw new Error("Link compartilhado inválido.");
-        userId = linkData.owner_id;
-      } else {
-        // Caso contrário, usamos o usuário logado
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Você precisa estar logado para capturar fotos.");
-        userId = user.id;
+  const startRecording = () => {
+    if (!stream) return;
+    
+    chunksRef.current = [];
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+    const mediaRecorder = new MediaRecorder(stream, { mimeType });
+    
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        chunksRef.current.push(e.data);
       }
+    };
+    
+    mediaRecorder.onstop = async () => {
+      const blob = new Blob(chunksRef.current, { type: mimeType });
+      await uploadMedia(blob, 'video');
+    };
+    
+    mediaRecorder.start();
+    mediaRecorderRef.current = mediaRecorder;
+    setIsRecording(true);
+  };
 
-      const fileName = `${shareToken ? 'public/' + shareToken : userId}/${Date.now()}.jpg`;
-      const { data, error: uploadError } = await supabase.storage
-        .from('photos')
-        .upload(fileName, blob);
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
 
-      if (uploadError) throw uploadError;
+  const handlePointerDown = () => {
+    pressTimerRef.current = setTimeout(() => {
+      startRecording();
+    }, 500);
+  };
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('photos')
-        .getPublicUrl(fileName);
+  const handlePointerUp = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
 
-      const { error: dbError } = await supabase
-        .from('photos')
-        .insert({
-          user_id: userId,
-          image_url: publicUrl,
-          caption: shareToken ? "Captura Pública" : "Captura Direta",
-          share_token: shareToken || null,
-          guest_name: shareToken ? "Convidado (Câmera)" : null
-        });
-
-      if (dbError) throw dbError;
-
-      toast.success("Momento capturado!");
-      onCapture(publicUrl);
-      onClose();
-    } catch (err: any) {
-      toast.error("Erro ao salvar foto: " + err.message);
-    } finally {
-      setIsUploading(false);
+    if (isRecording) {
+      stopRecording();
+    } else {
+      capturePhoto();
     }
   };
 
@@ -204,7 +254,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
                   )}
                 </div>
                 
-                {/* Progress Ring for recording hint */}
                 {!isRecording && !isUploading && (
                   <svg className="absolute inset-0 h-full w-full -rotate-90">
                     <circle
