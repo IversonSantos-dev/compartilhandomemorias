@@ -105,9 +105,23 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImage(reader.result as string);
+      setCropType(type);
+    };
+    reader.readAsDataURL(file);
+    // Reset input
+    e.target.value = '';
+  };
+
+  const onCropComplete = async (croppedBlob: Blob) => {
+    setCropImage(null);
     setSaving(true);
     try {
-      const fileName = `${userId}/${type}-${Date.now()}-${file.name}`;
+      const fileName = `${userId}/${cropType}-${Date.now()}.jpg`;
+      const file = new File([croppedBlob], fileName, { type: 'image/jpeg' });
+
       const { error: uploadError } = await supabase.storage
         .from('photos')
         .upload(fileName, file);
@@ -118,7 +132,7 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
         .from('photos')
         .getPublicUrl(fileName);
 
-      const updateData = type === 'avatar' ? { avatar_url: publicUrl } : { banner_url: publicUrl };
+      const updateData = cropType === 'avatar' ? { avatar_url: publicUrl } : { banner_url: publicUrl };
       
       const { error: dbError } = await supabase
         .from('profiles')
@@ -127,7 +141,7 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
 
       if (dbError) throw dbError;
 
-      toast.success(`${type === 'avatar' ? 'Foto de perfil' : 'Banner'} atualizado!`);
+      toast.success(`${cropType === 'avatar' ? 'Foto de perfil' : 'Banner'} atualizado!`);
       fetchProfile();
       onUpdate?.();
     } catch (err: any) {
