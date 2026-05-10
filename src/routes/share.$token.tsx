@@ -251,6 +251,54 @@ function PublicUpload() {
           </AnimatePresence>
         </div>
 
+        </div>
+
+        {/* Shared Gallery Section */}
+        <section className="mt-20">
+          <div className="mb-8 flex items-center justify-center gap-3">
+            <ImageIcon className="text-black" size={24} />
+            <h3 className="text-xl font-black tracking-tight">Memórias dos Convidados</h3>
+          </div>
+
+          {loadingPhotos ? (
+            <div className="grid grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="aspect-square animate-pulse rounded-3xl bg-gray-200" />
+              ))}
+            </div>
+          ) : photos.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4">
+              <AnimatePresence>
+                {photos.map((photo, index) => (
+                  <motion.div
+                    key={photo.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="relative aspect-square overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
+                  >
+                    <img
+                      src={photo.image_url}
+                      alt="Shared moment"
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-black/20 p-2 backdrop-blur-md">
+                      <Clock size={12} className="text-white/80" />
+                      <span className="text-[10px] font-bold text-white uppercase tracking-tighter">
+                        {new Date(photo.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <div className="rounded-3xl border-2 border-dashed border-gray-200 py-12 text-center">
+              <p className="text-sm font-medium text-gray-400">Nenhuma foto ainda. Seja o primeiro!</p>
+            </div>
+          )}
+        </section>
+
         <div className="mt-16 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
           <div className="flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400">
             <CheckCircle2 size={16} />
@@ -272,8 +320,9 @@ function PublicUpload() {
             spread: 90,
             origin: { y: 0.6 }
           });
+          // A atualização da galeria já é tratada pelo canal em tempo real
         }}
       />
     </div>
   );
-};
+}
