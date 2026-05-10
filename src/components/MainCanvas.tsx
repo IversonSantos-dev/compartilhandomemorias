@@ -37,66 +37,70 @@ export const MainCanvas: React.FC = () => {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !session?.user) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0 || !session?.user) return;
 
-    setIsUploading(true);
-    setUploadProgress(10);
-    try {
-      const fileName = `${session.user.id}/${Date.now()}-${file.name}`;
-      
-      // Simular progresso inicial
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
+    const newItems = files.map(file => ({
+      id: Math.random().toString(36).substring(7),
+      file,
+      progress: 0,
+      preview: URL.createObjectURL(file)
+    }));
+
+    setUploadQueue(prev => [...prev, ...newItems]);
+
+    // Processar cada arquivo na fila
+    for (const item of newItems) {
+      try {
+        const fileName = `${session.user.id}/${Date.now()}-${item.file.name}`;
+        
+        // Simular progresso inicial
+        setUploadQueue(prev => prev.map(i => i.id === item.id ? { ...i, progress: 10 } : i));
+
+        const { data, error: uploadError } = await supabase.storage
+          .from('photos')
+          .upload(fileName, item.file);
+
+        if (uploadError) throw uploadError;
+        
+        setUploadQueue(prev => prev.map(i => i.id === item.id ? { ...i, progress: 60 } : i));
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('photos')
+          .getPublicUrl(fileName);
+
+        const { error: dbError } = await supabase
+          .from('photos')
+          .insert({
+            user_id: session.user.id,
+            image_url: publicUrl,
+            caption: ""
+          });
+
+        if (dbError) throw dbError;
+
+        setUploadQueue(prev => prev.map(i => i.id === item.id ? { ...i, progress: 100 } : i));
+        
+        toast.success(`Foto "${item.file.name}" enviada!`);
+        
+        confetti({
+          particleCount: 40,
+          spread: 50,
+          origin: { y: 0.8 },
+          colors: ['#000000', '#FFFFFF']
         });
-      }, 300);
 
-      const { data, error: uploadError } = await supabase.storage
-        .from('photos')
-        .upload(fileName, file);
+        // Remover da fila após sucesso
+        setTimeout(() => {
+          setUploadQueue(prev => prev.filter(i => i.id !== item.id));
+          URL.revokeObjectURL(item.preview);
+        }, 2000);
 
-      clearInterval(progressInterval);
-      if (uploadError) throw uploadError;
-      
-      setUploadProgress(95);
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('photos')
-        .getPublicUrl(fileName);
-
-      const { error: dbError } = await supabase
-        .from('photos')
-        .insert({
-          user_id: session.user.id,
-          image_url: publicUrl,
-          caption: ""
-        });
-
-      if (dbError) throw dbError;
-
-      setUploadProgress(100);
-      toast.success("Foto enviada com sucesso!");
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#000000', '#FFFFFF', '#F9F9F9']
-      });
-      
-      // Resetar após um pequeno delay para a animação completar
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
-    } catch (err: any) {
-      toast.error("Erro no upload: " + err.message);
-      setIsUploading(false);
-      setUploadProgress(0);
+      } catch (err: any) {
+        toast.error(`Erro no upload de "${item.file.name}": ${err.message}`);
+        setUploadQueue(prev => prev.filter(i => i.id !== item.id));
+        URL.revokeObjectURL(item.preview);
+      }
     }
   };
 
