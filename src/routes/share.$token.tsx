@@ -1,11 +1,18 @@
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon } from 'lucide-react';
+import { Camera, Upload as UploadIcon, Image as ImageIcon, Loader2, CheckCircle2, ArrowLeft, X as CloseIcon, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast, Toaster } from 'sonner';
 import confetti from 'canvas-confetti';
 import { CameraCapture } from '@/components/CameraCapture';
+
+interface Photo {
+  id: string;
+  image_url: string;
+  created_at: string;
+  caption: string | null;
+}
 
 export const Route = createFileRoute("/share/$token")({
   component: PublicUpload,
