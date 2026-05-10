@@ -62,10 +62,18 @@ export const PublicUpload: React.FC = () => {
         .from('photos')
         .getPublicUrl(fileName);
 
+      const { data: ownerData, error: ownerError } = await supabase
+        .from('shared_links')
+        .select('owner_id')
+        .eq('token', token)
+        .single();
+
+      if (ownerError || !ownerData) throw new Error("Owner not found");
+
       const { error: dbError } = await supabase
         .from('photos')
         .insert({
-          user_id: (await supabase.from('shared_links').select('owner_id').eq('token', token).single()).data?.owner_id,
+          user_id: ownerData.owner_id,
           image_url: publicUrl,
           caption: "Public Upload",
           share_token: token
