@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Camera, Upload, User, Layout, Save, X, Loader2 } from 'lucide-react';
+import { Camera, Upload, User, Layout, Save, X, Loader2, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ImageCropper } from './ImageCropper';
 
 interface Profile {
   id: string;
