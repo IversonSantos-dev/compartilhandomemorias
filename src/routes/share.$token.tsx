@@ -36,18 +36,25 @@ function PublicUpload() {
   useEffect(() => {
     const validateToken = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: linkData, error: linkError } = await supabase
           .from('shared_links')
-          .select('*, owner:profiles(display_name)')
+          .select('*')
           .eq('token', token)
           .eq('is_active', true)
           .maybeSingle();
 
-        if (error || !data) {
+        if (linkError || !linkData) {
           setIsValid(false);
         } else {
           setIsValid(true);
-          setOwnerInfo(data.owner);
+          // Fetch owner info separately to avoid complex join issues
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', linkData.owner_id)
+            .maybeSingle();
+          
+          setOwnerInfo(profileData);
         }
       } catch (err) {
         setIsValid(false);
@@ -404,6 +411,7 @@ function PublicUpload() {
       <CameraCapture 
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
+        shareToken={token}
         onCapture={(url) => {
           confetti({
             particleCount: 150,

@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { Camera, X, Upload, Check, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Camera, X, Upload, Check, Loader2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,18 +8,25 @@ interface CameraCaptureProps {
   onCapture: (url: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  shareToken?: string;
 }
 
-export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen, onClose }) => {
+export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen, onClose, shareToken }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const startCamera = useCallback(async () => {
+    // Parar stream anterior se existir
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' },
+        video: { facingMode: facingMode },
         audio: false 
       });
       setStream(mediaStream);
@@ -28,26 +35,24 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
-      toast.error("Permissão de câmera negada ou câmera não encontrada.");
-      onClose();
+      toast.error("Erro ao acessar a câmera. Verifique as permissões.");
     }
-  }, [onClose]);
+  }, [facingMode]);
 
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  }, [stream]);
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       startCamera();
-    } else {
-      stopCamera();
     }
-    return () => stopCamera();
-  }, [isOpen, startCamera, stopCamera]);
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [isOpen, facingMode]); // Reinicia quando o modo de câmera muda
+
+  const toggleCamera = () => {
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+  };
 
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -70,14 +75,26 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
   const uploadPhoto = async (blob: Blob) => {
     setIsUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Você precisa estar logado para postar fotos.");
-        setIsUploading(false);
-        return;
+      let userId: string | null = null;
+      
+      if (shareToken) {
+        // Se houver shareToken, pegamos o owner_id do link
+        const { data: linkData, error: linkError } = await supabase
+          .from('shared_links')
+          .select('owner_id')
+          .eq('token', shareToken)
+          .single();
+        
+        if (linkError || !linkData) throw new Error("Link compartilhado inválido.");
+        userId = linkData.owner_id;
+      } else {
+        // Caso contrário, usamos o usuário logado
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Você precisa estar logado para capturar fotos.");
+        userId = user.id;
       }
 
-      const fileName = `${user.id}/${Date.now()}.jpg`;
+      const fileName = `${shareToken ? 'public/' + shareToken : userId}/${Date.now()}.jpg`;
       const { data, error: uploadError } = await supabase.storage
         .from('photos')
         .upload(fileName, blob);
@@ -91,9 +108,11 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       const { error: dbError } = await supabase
         .from('photos')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           image_url: publicUrl,
-          caption: ""
+          caption: shareToken ? "Captura Pública" : "Captura Direta",
+          share_token: shareToken || null,
+          guest_name: shareToken ? "Convidado (Câmera)" : null
         });
 
       if (dbError) throw dbError;
@@ -102,7 +121,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       onCapture(publicUrl);
       onClose();
     } catch (err: any) {
-      toast.error("Erro no upload: " + err.message);
+      toast.error("Erro ao salvar foto: " + err.message);
     } finally {
       setIsUploading(false);
     }
@@ -123,18 +142,28 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
             exit={{ scale: 0.9, y: 20 }}
             className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
           >
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 z-10 rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40"
-            >
-              <X size={20} />
-            </button>
+            <div className="absolute top-4 right-4 z-10 flex gap-2">
+              <button
+                onClick={toggleCamera}
+                className="rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 backdrop-blur-md"
+                title="Trocar Câmera"
+              >
+                <RefreshCw size={20} />
+              </button>
+              <button
+                onClick={onClose}
+                className="rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 backdrop-blur-md"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             <div className="relative aspect-[3/4] w-full bg-black">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className="h-full w-full object-cover"
               />
               <canvas ref={canvasRef} className="hidden" />
@@ -147,13 +176,16 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
               )}
             </div>
 
-            <div className="flex items-center justify-center p-8">
+            <div className="flex items-center justify-center p-8 bg-white">
               <button
-                onClick={capturePhoto}
+                onClick={(e) => {
+                  e.preventDefault();
+                  capturePhoto();
+                }}
                 disabled={isUploading}
-                className="group relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-gray-200 p-1 transition-all active:scale-95 disabled:opacity-50"
+                className="group relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-gray-100 p-1 transition-all hover:border-black/5 active:scale-95 disabled:opacity-50"
               >
-                <div className="h-full w-full rounded-full bg-black group-hover:scale-110 transition-transform flex items-center justify-center">
+                <div className="h-full w-full rounded-full bg-black group-hover:bg-gray-800 transition-all flex items-center justify-center shadow-xl">
                   <Camera className="text-white" size={32} />
                 </div>
               </button>
