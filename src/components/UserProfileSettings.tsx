@@ -270,7 +270,7 @@ export const UserProfileSettings: React.FC<UserProfileProps> = ({ userId, onUpda
               </div>
             )}
             <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-              <Camera size={20} className="text-white" />
+              <Scissors size={20} className="text-white" />
               <input 
                 type="file" 
                 className="hidden" 
