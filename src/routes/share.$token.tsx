@@ -72,7 +72,6 @@ function PublicUpload() {
       const { data, error } = await supabase
         .from('photos')
         .select('*')
-        .eq('share_token', token)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
