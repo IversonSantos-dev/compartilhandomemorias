@@ -90,6 +90,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           onCropChange={onCropChange}
           onCropComplete={onCropCompleteInternal}
           onZoomChange={onZoomChange}
+          showGrid={true}
         />
       </div>
       
