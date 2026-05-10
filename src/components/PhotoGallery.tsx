@@ -135,13 +135,16 @@ export const PhotoGallery: React.FC = () => {
     toast.info(`Iniciando download de ${selectedPhotos.length} fotos...`);
 
     try {
-      for (const photoId of selectedPhotos) {
+      for (let i = 0; i < selectedPhotos.length; i++) {
+        const photoId = selectedPhotos[i];
         const photo = photos.find(p => p.id === photoId);
         if (photo) {
           const extension = photo.image_url.split('.').pop()?.split('?')[0] || 'jpg';
           const fileName = `foto-${photoId}.${extension}`;
           await downloadImage(photo.image_url, fileName);
-          await new Promise(resolve => setTimeout(resolve, 300));
+          if (i < selectedPhotos.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
         }
       }
       toast.success("Downloads concluídos!");
