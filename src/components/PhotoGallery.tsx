@@ -92,11 +92,19 @@ export const PhotoGallery: React.FC = () => {
         {photos.map((photo, index) => (
           <motion.div
             key={photo.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1, 
+              y: 0,
+              boxShadow: index === 0 ? "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" : "0 1px 2px 0 rgb(0 0 0 / 0.05)"
+            }}
             exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ delay: index * 0.05 }}
-            className="group relative break-inside-avoid overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 transition-all hover:shadow-md"
+            transition={{ 
+              duration: 0.4,
+              ease: "easeOut"
+            }}
+            className={`group relative break-inside-avoid overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 transition-all hover:shadow-lg ${index === 0 ? 'ring-2 ring-black/10 z-10' : ''}`}
           >
             <img
               src={photo.image_url}
@@ -120,17 +128,30 @@ export const PhotoGallery: React.FC = () => {
             )}
 
             <div className="p-4">
-              {photo.caption && (
-                <p className="text-sm font-medium text-gray-800">{photo.caption}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-400">
-                {new Date(photo.created_at).toLocaleDateString('pt-BR', {
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  {photo.caption && (
+                    <p className="text-sm font-medium text-gray-800">{photo.caption}</p>
+                  )}
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-gray-300">
+                    {new Date(photo.created_at).toLocaleDateString('pt-BR', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                {index === 0 && (
+                  <motion.span 
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="rounded-full bg-black px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-white"
+                  >
+                    Novo
+                  </motion.span>
+                )}
+              </div>
             </div>
           </motion.div>
         ))}
