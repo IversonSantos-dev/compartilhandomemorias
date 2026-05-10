@@ -22,7 +22,7 @@ export const ShareGallery: React.FC = () => {
 
       const { data, error } = await supabase
         .from('shared_links')
-        .select('token')
+        .select('token, name')
         .eq('owner_id', user.id)
         .eq('is_active', true)
         .maybeSingle();
@@ -31,6 +31,8 @@ export const ShareGallery: React.FC = () => {
       
       if (data) {
         setLink(`${window.location.origin}/share/${data.token}`);
+        setFolderName(data.name || '');
+        setTokenId(data.token);
       }
     } catch (err: any) {
       console.error(err);
@@ -48,11 +50,13 @@ export const ShareGallery: React.FC = () => {
       const { data, error } = await supabase
         .from('shared_links')
         .insert({ owner_id: user.id })
-        .select('token')
+        .select('token, name')
         .single();
 
       if (error) throw error;
       setLink(`${window.location.origin}/share/${data.token}`);
+      setFolderName(data.name || '');
+      setTokenId(data.token);
       toast.success("Link de compartilhamento criado!");
     } catch (err: any) {
       toast.error("Erro ao criar link: " + err.message);
