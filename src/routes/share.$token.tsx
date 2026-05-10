@@ -29,6 +29,9 @@ function PublicUpload() {
   const [ownerInfo, setOwnerInfo] = useState<any>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'today' | 'week'>('all');
+  const [guestNameInput, setGuestNameInput] = useState('');
+  const [captionInput, setCaptionInput] = useState('');
 
   useEffect(() => {
     const validateToken = async () => {
