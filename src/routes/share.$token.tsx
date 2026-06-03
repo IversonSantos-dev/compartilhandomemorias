@@ -42,12 +42,9 @@ function PublicUpload() {
   useEffect(() => {
     const validateToken = async () => {
       try {
-        const { data: linkData, error: linkError } = await supabase
-          .from('shared_links')
-          .select('*')
-          .eq('token', token)
-          .eq('is_active', true)
-          .maybeSingle();
+        const { data: linkRows, error: linkError } = await supabase
+          .rpc('get_shared_link_by_token', { _token: token });
+        const linkData = linkRows && linkRows.length > 0 ? linkRows[0] : null;
 
         if (linkError || !linkData) {
           setIsValid(false);
@@ -175,11 +172,9 @@ function PublicUpload() {
         .from('photos')
         .getPublicUrl(fileName);
 
-      const { data: ownerData, error: ownerError } = await supabase
-        .from('shared_links')
-        .select('owner_id')
-        .eq('token', token)
-        .single();
+      const { data: ownerRows, error: ownerError } = await supabase
+        .rpc('get_shared_link_by_token', { _token: token });
+      const ownerData = ownerRows && ownerRows.length > 0 ? ownerRows[0] : null;
 
       if (ownerError || !ownerData) throw new Error("Owner not found");
 
