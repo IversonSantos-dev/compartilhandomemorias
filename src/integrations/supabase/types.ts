@@ -109,7 +109,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_shared_link_by_token: {
+        Args: { _token: string }
+        Returns: {
+          created_at: string
+          is_active: boolean
+          name: string
+          owner_id: string
+          token: string
+        }[]
+      }
+      is_active_share_token: { Args: { _token: string }; Returns: boolean }
+      owner_has_active_link: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

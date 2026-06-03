@@ -70,12 +70,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, isOpen,
       let userId: string | null = null;
       
       if (shareToken) {
-        const { data: linkData, error: linkError } = await supabase
-          .from('shared_links')
-          .select('owner_id')
-          .eq('token', shareToken)
-          .single();
-        
+        const { data: linkRows, error: linkError } = await supabase
+          .rpc('get_shared_link_by_token', { _token: shareToken });
+        const linkData = linkRows && linkRows.length > 0 ? linkRows[0] : null;
+
         if (linkError || !linkData) throw new Error("Link compartilhado inválido.");
         userId = linkData.owner_id;
       } else {
