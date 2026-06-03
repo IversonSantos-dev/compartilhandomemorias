@@ -118,7 +118,7 @@ export const MainCanvas: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             className="text-2xl font-bold tracking-tighter text-black sm:text-3xl"
           >
-            Shared Memory Canvas<span className="text-gray-300">.</span>
+            Compartilhando Memórias<span className="text-gray-300">.</span>
           </motion.h1>
           
           <div className="flex items-center gap-4">
@@ -172,7 +172,7 @@ export const MainCanvas: React.FC = () => {
                 Crie memórias <span className="text-gray-400 italic">vivas</span> com quem você ama.
               </h2>
               <p className="mx-auto mt-8 max-w-xl text-lg font-medium text-gray-500">
-                O Shared Memory Canvas é uma galeria privada e colaborativa. 
+                O Compartilhando Memórias é uma galeria privada e colaborativa. 
                 Crie sua conta para começar a colecionar momentos únicos.
               </p>
             </motion.div>
