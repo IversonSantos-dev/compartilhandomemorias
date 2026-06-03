@@ -118,7 +118,7 @@ export const MainCanvas: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             className="text-2xl font-bold tracking-tighter text-black sm:text-3xl"
           >
-            Shared Memory Canvas<span className="text-gray-300">.</span>
+            Compartilhando Memórias<span className="text-gray-300">.</span>
           </motion.h1>
           
           <div className="flex items-center gap-4">
